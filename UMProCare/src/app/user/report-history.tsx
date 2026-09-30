@@ -1,7 +1,17 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, View } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { Page, Header, Card, Item } from "../../components/Kit";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useFocusEffect, router } from "expo-router";
+
+import { C } from "../../constants/palette";
+import { Page, Card, Item } from "../../components/Kit";
 import { apiRequest } from "../../services/api";
 
 type Report = {
@@ -14,6 +24,52 @@ type Report = {
   created_at: string | null;
 };
 
+function getReportTitle(title: string | null | undefined) {
+  const cleanTitle = title?.trim();
+
+  if (
+    !cleanTitle ||
+    cleanTitle.toLowerCase() === "unspecified property"
+  ) {
+    return "Reported damage";
+  }
+
+  return cleanTitle;
+}
+
+function HistoryHeader() {
+  const handleBack = () => {
+    router.replace("/user/user-dashboard" as any);
+  };
+
+  return (
+    <View style={styles.header}>
+      <Pressable
+        onPress={handleBack}
+        style={({ pressed }) => [
+          styles.backButton,
+          pressed && styles.backButtonPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Go back to home"
+        hitSlop={8}
+      >
+        <Text style={styles.backButtonText}>‹</Text>
+      </Pressable>
+
+      <View style={styles.headerText}>
+        <Text style={styles.headerTitle}>
+          Report history
+        </Text>
+
+        <Text style={styles.headerSubtitle}>
+          Closed and resolved reports
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function History() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +81,7 @@ export default function History() {
 
     try {
       const response = await apiRequest("/my/reports/history");
+
       const rows = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
@@ -54,28 +111,39 @@ export default function History() {
 
   const formatDate = (value: string | null) => {
     if (!value) return "Date unavailable";
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
     return date.toLocaleDateString();
   };
 
   return (
     <Page>
-      <Header title="Report history" sub="Closed and resolved reports" back />
+      <HistoryHeader />
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
         }
       >
         <Card>
           {loading ? (
-            <View style={{ padding: 24, alignItems: "center" }}>
-              <ActivityIndicator />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={C.maroon} />
             </View>
           ) : error ? (
-            <View style={{ padding: 16 }}>
-              <Item title="Unable to load history" meta={error} />
+            <View style={styles.errorContainer}>
+              <Item
+                title="Unable to load history"
+                meta={error}
+              />
               <Item
                 title="Try again"
                 meta="Tap to reload your report history"
@@ -107,9 +175,18 @@ export default function History() {
               return (
                 <Item
                   key={report.id}
-                  title={report.title || "Damage report"}
+                  title={getReportTitle(report.title)}
                   meta={meta}
-                  status={report.status.toUpperCase()}
+                  status={(report.status || "").toUpperCase()}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/user/report-details",
+                      params: {
+                        id: String(report.id),
+                        returnTo: "/user/report-history",
+                      },
+                    } as any)
+                  }
                 />
               );
             })
@@ -119,3 +196,51 @@ export default function History() {
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 25,
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  backButtonPressed: {
+    opacity: 0.8,
+  },
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 38,
+    lineHeight: 42,
+    marginTop: -4,
+    fontWeight: "400",
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    color: C.ink,
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  headerSubtitle: {
+    color: C.muted,
+    fontSize: 14,
+    marginTop: 3,
+  },
+  loadingContainer: {
+    padding: 24,
+    alignItems: "center",
+  },
+  errorContainer: {
+    padding: 16,
+  },
+});

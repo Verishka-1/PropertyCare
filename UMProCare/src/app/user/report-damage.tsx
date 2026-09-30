@@ -27,12 +27,15 @@ const getParam = (value: RouteParam): string => {
 };
 
 export default function ReportDamageScreen() {
-  const params = useLocalSearchParams<{
-    building?: string | string[];
-    buildingName?: string | string[];
-    room?: string | string[];
-    roomName?: string | string[];
-  }>();
+ const params = useLocalSearchParams<{
+  building?: string | string[];
+  buildingName?: string | string[];
+  room?: string | string[];
+  roomName?: string | string[];
+  returnTo?: string | string[];
+}>();
+
+  const returnTo = getParam(params.returnTo);
 
   // IDs are kept separate from the names shown to the user.
   const [selectedBuilding, setSelectedBuilding] = useState(() =>
@@ -66,8 +69,13 @@ export default function ReportDamageScreen() {
   ]);
 
   const chooseLocation = () => {
-    router.push("/user/campus-map" as any);
-  };
+  router.push({
+    pathname: "/user/campus-map",
+    params: {
+      returnTo: "/user/report-damage",
+    },
+  } as any);
+};
 
   const addPhotoFrom = async (source: "camera" | "gallery") => {
     if (photos.length >= MAX_PHOTOS) {
@@ -198,6 +206,9 @@ export default function ReportDamageScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
             disabled={submitting}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Text style={styles.backText}>‹</Text>
           </TouchableOpacity>
@@ -377,24 +388,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 30,
     marginBottom: Spacing.lg,
   },
 
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.maroon,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
 
   backText: {
     color: COLORS.white,
-    fontSize: 30,
-    lineHeight: 32,
-    marginTop: -3,
+    fontSize: 38,
+    lineHeight: 42,
+    marginTop: -4,
+    fontWeight: "400",
   },
 
   headerTitle: {

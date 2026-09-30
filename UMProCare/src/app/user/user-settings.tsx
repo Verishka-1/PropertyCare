@@ -1,9 +1,16 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { router, useFocusEffect } from "expo-router";
 
 import { C } from "../../constants/palette";
-import { Page, Header, Card, Field, Button } from "../../components/Kit";
+import { Page, Card, Field, Button } from "../../components/Kit";
 import { getMyProfile, logout, updateMyProfile } from "../../services/api";
 
 type Profile = {
@@ -13,6 +20,30 @@ type Profile = {
   email: string;
   username: string;
 };
+
+function SettingsHeader() {
+  return (
+    <View style={styles.header}>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ pressed }) => [
+          styles.backButton,
+          pressed && styles.backButtonPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={8}
+      >
+        <Text style={styles.backButtonText}>‹</Text>
+      </Pressable>
+
+      <View style={styles.headerText}>
+        <Text style={styles.headerTitle}>Profile & settings</Text>
+        <Text style={styles.headerSubtitle}>Manage your account</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function UserSettings() {
   const [firstName, setFirstName] = useState("");
@@ -111,11 +142,7 @@ export default function UserSettings() {
 
   return (
     <Page>
-      <Header
-        title="Profile & settings"
-        sub="Manage your account"
-        back
-      />
+      <SettingsHeader />
 
       <Card>
         <Text style={{ color: C.ink, fontWeight: "800" }}>
@@ -185,3 +212,44 @@ export default function UserSettings() {
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 30,
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  backButtonPressed: {
+    opacity: 0.8,
+  },
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 38,
+    lineHeight: 42,
+    marginTop: -4,
+    fontWeight: "400",
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    color: C.ink,
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  headerSubtitle: {
+    color: C.muted,
+    fontSize: 14,
+    marginTop: 3,
+  },
+});

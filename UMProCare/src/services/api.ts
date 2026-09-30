@@ -16,6 +16,20 @@ import * as SecureStore from "expo-secure-store";
 // from a simulator running on the same machine as the Laravel server.
 const API_URL = "http://172.20.10.2:8000/api";
 
+export const getStorageUrl = (path: string) => {
+  const baseUrl = API_URL.replace(/\/api\/?$/, "");
+
+  if (path.startsWith("http://localhost")) {
+    return path.replace("http://localhost", baseUrl);
+  }
+
+  if (path.startsWith("/")) {
+    return `${baseUrl}${path}`;
+  }
+
+  return path;
+};
+
 const TOKEN_KEY = "auth_token";
 
 /* ------------------------------------------------------------------ */

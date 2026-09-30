@@ -504,9 +504,7 @@ function normalizeBuildingId(value?: string): string | null {
     return null;
   }
 
-  const normalized = value
-    .toLowerCase()
-    .replace(/[\s_-]/g, "");
+  const normalized = value.toLowerCase().replace(/[\s_-]/g, "");
 
   switch (normalized) {
     case "building1":
@@ -572,6 +570,11 @@ export default function BuildingMapScreen() {
     return convertHotspotsToPixels(config.image, config.hotspots);
   }, [config]);
 
+  // Always return to the campus map, including if the building is invalid.
+  const goToCampusMap = () => {
+    router.replace("/user/campus-map" as any);
+  };
+
   if (!config) {
     return (
       <View style={styles.errorContainer}>
@@ -581,8 +584,10 @@ export default function BuildingMapScreen() {
         </Text>
 
         <Pressable
-          onPress={() => router.back()}
+          onPress={goToCampusMap}
           style={styles.errorButton}
+          accessibilityRole="button"
+          accessibilityLabel="Return to Campus Map"
         >
           <Text style={styles.errorButtonText}>Go Back</Text>
         </Pressable>
@@ -590,28 +595,31 @@ export default function BuildingMapScreen() {
     );
   }
 
- const handleRoomPress = (hotspot: MapHotspot) => {
-  router.push({
-    pathname: "/user/report-damage",
-    params: {
-      building: buildingId ?? "",
-      buildingName: config.name,
-      room: hotspot.id,
-      roomName: hotspot.name,
-    },
-  } as any);
-};
+  const handleRoomPress = (hotspot: MapHotspot) => {
+    router.push({
+      pathname: "/user/report-damage",
+      params: {
+        building: buildingId ?? "",
+        buildingName: config.name,
+        room: hotspot.id,
+        roomName: hotspot.name,
+      },
+    } as any);
+  };
 
   return (
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
+          onPress={goToCampusMap}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel="Return to Campus Map"
         >
           <Text style={styles.backText}>‹</Text>
         </Pressable>
@@ -662,20 +670,25 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.maroon,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 14,
+  },
+
+  backButtonPressed: {
+    opacity: 0.8,
   },
 
   backText: {
     color: COLORS.white,
-    fontSize: 30,
-    lineHeight: 32,
-    marginTop: -3,
+    fontSize: 38,
+    lineHeight: 42,
+    marginTop: -4,
+    fontWeight: "400",
   },
 
   headerText: {

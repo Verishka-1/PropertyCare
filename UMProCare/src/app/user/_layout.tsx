@@ -43,11 +43,11 @@ export default function UserTabsLayout() {
       />
 
       <Tabs.Screen
-        name="campus-map"
+        name="report-history"
         options={{
-          title: "Map",
+          title: "History",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map-outline" size={size} color={color} />
+            <Ionicons name="time-outline" size={size} color={color} />
           ),
         }}
       />
@@ -76,10 +76,10 @@ export default function UserTabsLayout() {
         }}
       />
 
-      {/* Other user screens are opened from buttons or links, not the tab bar. */}
+      {/* Screens opened from buttons or links, not shown in the tab bar. */}
+      <Tabs.Screen name="campus-map" options={{ href: null }} />
       <Tabs.Screen name="select-room" options={{ href: null }} />
       <Tabs.Screen name="report-damage" options={{ href: null }} />
-      <Tabs.Screen name="report-history" options={{ href: null }} />
       <Tabs.Screen name="building-map" options={{ href: null }} />
       <Tabs.Screen name="report-details" options={{ href: null }} />
     </Tabs>

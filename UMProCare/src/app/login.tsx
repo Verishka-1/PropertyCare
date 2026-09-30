@@ -159,7 +159,7 @@ export default function Login() {
           color: C.muted,
         }}
       >
-        Secure sign-in · University of Mindanao
+      University of Mindanao Visayan Campus Edition
       </Text>
     </Page>
   );

@@ -44,4 +44,19 @@ class DamageReport extends Model
     {
         return $this->hasMany(Notification::class);
     }
+public function building()
+{
+    return $this->belongsTo(
+        \App\Models\Building::class,
+        'building_id'
+    );
+}
+
+public function room()
+{
+    return $this->belongsTo(
+        \App\Models\Room::class,
+        'room_id'
+    );
+}
 }

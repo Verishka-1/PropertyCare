@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,780 +10,888 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 
-import { COLORS, Spacing } from "../../constants/theme";
-import { getMyProfile, logout } from "../../services/api";
+import { COLORS } from "../../constants/theme";
+import { getMyProfile } from "../../services/api";
 
 type UserProfile = {
+  first_name?: string;
+  last_name?: string;
   name?: string;
-  email?: string;
+  username?: string;
 };
 
-export default function UserDashboardScreen() {
+export default function UserDashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   const loadProfile = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     } else {
-      setProfileLoading(true);
+      setLoading(true);
     }
 
     try {
       const response = await getMyProfile();
-      setProfile(response?.data ?? response ?? null);
+      const user = response?.data?.user ?? response?.data ?? response?.user ?? response;
+
+      setProfile(user);
     } catch (error) {
-      console.warn("Could not load user profile:", error);
+      console.error("Failed to load profile:", error);
     } finally {
-      setProfileLoading(false);
+      setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-
-      const fetchProfile = async () => {
-        try {
-          const response = await getMyProfile();
-          if (active) {
-            setProfile(response?.data ?? response ?? null);
-          }
-        } catch (error) {
-          console.warn("Could not load user profile:", error);
-        } finally {
-          if (active) {
-            setProfileLoading(false);
-          }
-        }
-      };
-
-      fetchProfile();
-
-      return () => {
-        active = false;
-      };
-    }, [])
+      loadProfile();
+    }, [loadProfile])
   );
 
-  const handleRefresh = () => {
-    loadProfile(true);
+  const getDisplayName = () => {
+    if (profile?.first_name?.trim()) {
+      return profile.first_name.trim();
+    }
+
+    if (profile?.name?.trim()) {
+      return profile.name.trim().split(" ")[0];
+    }
+
+    if (profile?.username?.trim()) {
+      return profile.username.trim();
+    }
+
+    return "Student";
   };
 
-  const handleLogout = () => {
-    if (loggingOut) return;
+  const getFullName = () => {
+    const firstName = profile?.first_name?.trim() ?? "";
+    const lastName = profile?.last_name?.trim() ?? "";
+    const fullName = `${firstName} ${lastName}`.trim();
 
-    Alert.alert("Log out", "Are you sure you want to log out?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          setLoggingOut(true);
+    return fullName || profile?.name?.trim() || profile?.username?.trim() || "Student";
+  };
 
-          try {
-            await logout();
-            router.replace("/login");
-          } catch (error: any) {
-            Alert.alert(
-              "Logout failed",
-              error?.message || "Please try again."
-            );
-          } finally {
-            setLoggingOut(false);
-          }
-        },
-      },
-    ]);
+  const getInitials = () => {
+    const name = getFullName();
+    const parts = name.split(/\s+/).filter(Boolean);
+
+    if (parts.length > 1) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+
+    return name.slice(0, 1).toUpperCase();
   };
 
   const goToReportForm = () => {
-    goToTab("/user/select-room");
+    router.navigate("/user/report-damage" as any);
   };
 
-  const goToTab = (path: string) => {
-    router.navigate(path as any);
+  const goToCampusMap = () => {
+    router.navigate("/user/campus-map" as any);
   };
 
-  const firstName = profile?.name?.trim()?.split(/\s+/)[0];
+  if (loading && !profile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingLogo}>
+          <Text style={styles.loadingLogoText}>PC</Text>
+        </View>
+        <ActivityIndicator
+          size="small"
+          color={COLORS.maroon}
+          style={styles.loadingSpinner}
+        />
+        <Text style={styles.loadingText}>Getting your dashboard ready...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.screen}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.maroon}
-          />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkText}>PC</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => loadProfile(true)}
+          tintColor={COLORS.maroon}
+          colors={[COLORS.maroon]}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Welcome header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.brand}>
+            <View style={styles.brandIcon}>
+              <Text style={styles.brandIconText}>PC</Text>
             </View>
-
-            <TouchableOpacity
-              style={[
-                styles.logoutButton,
-                loggingOut && styles.disabledButton,
-              ]}
-              onPress={handleLogout}
-              disabled={loggingOut}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Log out"
-            >
-              {loggingOut ? (
-                <ActivityIndicator color={COLORS.white} size="small" />
-              ) : (
-                <Text style={styles.logoutText}>Logout</Text>
-              )}
-            </TouchableOpacity>
+            <View>
+              <Text style={styles.brandName}>PROPERTY CARE</Text>
+              <Text style={styles.brandCaption}>SCHOOL REPORTING</Text>
+            </View>
           </View>
 
-          <Text style={styles.smallTitle}>SCHOOL PROPERTY CARE</Text>
+          <View style={styles.headerTag}>
+            <View style={styles.headerTagDot} />
+            <Text style={styles.headerTagText}>STUDENT</Text>
+          </View>
+        </View>
 
-          <Text style={styles.headerTitle}>
-            {profileLoading
-              ? "Welcome!"
-              : firstName
-                ? `Hello, ${firstName}!`
-                : "Welcome!"}
+        <View style={styles.welcomeBlock}>
+          <Text style={styles.welcomeEyebrow}>WELCOME BACK</Text>
+          <Text style={styles.welcomeTitle}>
+            Hello, {getDisplayName()}!
           </Text>
-
-          <Text style={styles.headerSubtitle}>
-            Help keep our campus safe, functional, and well-maintained.
+          <Text style={styles.welcomeSubtitle}>
+            Let’s keep our campus safe, clean, and in good condition.
           </Text>
         </View>
 
-        <View style={styles.content}>
-          {/* Main action */}
-          <View style={styles.mainActionCard}>
-            <View style={styles.actionIconCircle}>
-              <Text style={styles.actionIcon}>＋</Text>
-            </View>
+        <View style={styles.headerDecoration} />
+        <View style={styles.headerDecorationSmall} />
+      </View>
 
-            <Text style={styles.mainActionEyebrow}>NOTICE SOMETHING DAMAGED?</Text>
-            <Text style={styles.mainActionTitle}>Report property damage</Text>
-            <Text style={styles.mainActionDescription}>
-              Let the administration know about damaged or malfunctioning
-              school property.
+      {/* User profile strip */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{getInitials()}</Text>
+        </View>
+
+        <View style={styles.profileText}>
+          <Text style={styles.profileOverline}>SIGNED IN AS</Text>
+          <Text style={styles.profileName} numberOfLines={1}>
+            {getFullName()}
+          </Text>
+        </View>
+
+        <View style={styles.profileCheck}>
+          <Text style={styles.profileCheckText}>✓</Text>
+        </View>
+      </View>
+
+      {/* Main action */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeadingRow}>
+          <View>
+            <Text style={styles.sectionEyebrow}>QUICK ACTION</Text>
+            <Text style={styles.sectionTitle}>What would you like to do?</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.reportCard}
+          onPress={goToReportForm}
+          activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Start a damage report"
+        >
+          <View style={styles.reportCardTop}>
+            <View style={styles.reportIconCircle}>
+              <Text style={styles.reportIcon}>＋</Text>
+            </View>
+            <View style={styles.actionBadge}>
+              <Text style={styles.actionBadgeText}>NEW REPORT</Text>
+            </View>
+          </View>
+
+          <Text style={styles.reportTitle}>Report damaged property</Text>
+          <Text style={styles.reportDescription}>
+            Help us identify and address damage around the school.
+          </Text>
+
+          <View style={styles.reportCardFooter}>
+            <Text style={styles.reportButtonText}>Start a report</Text>
+            <View style={styles.reportArrowCircle}>
+              <Text style={styles.reportArrow}>›</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Campus map */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeadingRow}>
+          <View>
+            <Text style={styles.sectionEyebrow}>FIND A LOCATION</Text>
+            <Text style={styles.sectionTitle}>Explore campus</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.mapCard}
+                        onPress={() =>
+                  router.push({
+                    pathname: "/user/campus-map",
+                    params: {
+                      returnTo: "/user/user-dashboard",
+                    },
+                  } as any)
+                }
+          activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Open campus map"
+        >
+          <View style={styles.mapIllustration}>
+            <View style={styles.mapGridLineOne} />
+            <View style={styles.mapGridLineTwo} />
+            <View style={styles.mapGridLineThree} />
+            <View style={styles.mapPinOuter}>
+              <Text style={styles.mapPin}>⌖</Text>
+            </View>
+          </View>
+
+          <View style={styles.mapContent}>
+            <Text style={styles.mapTitle}>Campus Map</Text>
+            <Text style={styles.mapDescription}>
+              Browse buildings and choose the room where the issue is located.
             </Text>
-
-            <TouchableOpacity
-              style={styles.mainActionButton}
-              onPress={goToReportForm}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Start a property damage report"
-            >
-              <Text style={styles.mainActionButtonText}>
-                Start a report
-              </Text>
-              <Text style={styles.buttonArrow}>›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Reports navigation */}
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Your activity</Text>
-              <Text style={styles.sectionSubtitle}>
-                Follow up on reports you’ve submitted.
-              </Text>
+            <View style={styles.mapLinkRow}>
+              <Text style={styles.mapLinkText}>Open map</Text>
+              <Text style={styles.mapLinkArrow}>→</Text>
             </View>
           </View>
-
-          <View style={styles.activityCard}>
-            <TouchableOpacity
-              style={styles.activityRow}
-              onPress={() => goToTab("/user/user-reports")}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-            >
-              <View style={styles.activityIconBox}>
-                <Text style={styles.activityIcon}>▤</Text>
-              </View>
-
-              <View style={styles.activityTextBlock}>
-                <Text style={styles.activityTitle}>My Reports</Text>
-                <Text style={styles.activityDescription}>
-                  Check the status of your submissions.
-                </Text>
-              </View>
-
-              <Text style={styles.rowArrow}>›</Text>
-            </TouchableOpacity>
-
-            <View style={styles.rowDivider} />
-
-            <TouchableOpacity
-              style={styles.activityRow}
-              onPress={() => router.push("/user/report-history")}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-            >
-              <View style={styles.activityIconBox}>
-                <Text style={styles.activityIcon}>◷</Text>
-              </View>
-
-              <View style={styles.activityTextBlock}>
-                <Text style={styles.activityTitle}>Report History</Text>
-                <Text style={styles.activityDescription}>
-                  Review completed and resolved reports.
-                </Text>
-              </View>
-
-              <Text style={styles.rowArrow}>›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Explore campus */}
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Explore and connect</Text>
-              <Text style={styles.sectionSubtitle}>
-                Find campus locations or send feedback.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.exploreGrid}>
-            <TouchableOpacity
-              style={styles.exploreCard}
-              onPress={() => goToTab("/user/campus-map")}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-            >
-              <View style={[styles.exploreIconCircle, styles.mapIconCircle]}>
-                <Text style={styles.exploreIcon}>⌖</Text>
-              </View>
-              <Text style={styles.exploreTitle}>Campus Map</Text>
-              <Text style={styles.exploreDescription}>
-                Browse buildings and campus locations.
-              </Text>
-              <Text style={styles.exploreLink}>Open map ›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.exploreCard}
-              onPress={() => goToTab("/user/feedback")}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-            >
-              <View
-                style={[styles.exploreIconCircle, styles.feedbackIconCircle]}
-              >
-                <Text style={styles.exploreIcon}>✉</Text>
-              </View>
-              <Text style={styles.exploreTitle}>Feedback</Text>
-              <Text style={styles.exploreDescription}>
-                Share a comment or concern with the administration.
-              </Text>
-              <Text style={styles.exploreLink}>Send feedback ›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* How it works */}
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>How reporting works</Text>
-              <Text style={styles.sectionSubtitle}>
-                Three simple steps to submit a report.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.stepsCard}>
-            <Step
-              number="01"
-              title="Choose a location"
-              description="Select the building and room where the damage happened."
-              isLast={false}
-            />
-            <Step
-              number="02"
-              title="Describe the problem"
-              description="Provide details about the damaged property and issue."
-              isLast={false}
-            />
-            <Step
-              number="03"
-              title="Submit and follow up"
-              description="Send your report, then check its status in My Reports."
-              isLast
-            />
-          </View>
-
-          {/* Account shortcut */}
-          <TouchableOpacity
-            style={styles.settingsShortcut}
-            onPress={() => goToTab("/user/user-settings")}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-          >
-            <View style={styles.settingsShortcutText}>
-              <Text style={styles.settingsShortcutTitle}>Profile & Settings</Text>
-              <Text style={styles.settingsShortcutDescription}>
-                Manage your account information and preferences.
-              </Text>
-            </View>
-            <Text style={styles.rowArrow}>›</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.footerNote}>
-            Thank you for helping care for our campus.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-type StepProps = {
-  number: string;
-  title: string;
-  description: string;
-  isLast: boolean;
-};
-
-function Step({ number, title, description, isLast }: StepProps) {
-  return (
-    <View style={styles.stepRow}>
-      <View style={styles.stepNumberColumn}>
-        <View style={styles.stepNumberCircle}>
-          <Text style={styles.stepNumberText}>{number}</Text>
-        </View>
-        {!isLast && <View style={styles.stepConnector} />}
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.stepTextBlock}>
-        <Text style={styles.stepTitle}>{title}</Text>
-        <Text style={styles.stepDescription}>{description}</Text>
+      {/* Steps */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeadingRow}>
+          <View>
+            <Text style={styles.sectionEyebrow}>A SIMPLE PROCESS</Text>
+            <Text style={styles.sectionTitle}>How reporting works</Text>
+          </View>
+        </View>
+
+        <View style={styles.stepsCard}>
+          <View style={styles.stepRow}>
+            <View style={styles.stepMarkerColumn}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>01</Text>
+              </View>
+              <View style={styles.stepConnector} />
+            </View>
+
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Choose a location</Text>
+              <Text style={styles.stepDescription}>
+                Select the building and room where you found the damage.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.stepRow}>
+            <View style={styles.stepMarkerColumn}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>02</Text>
+              </View>
+              <View style={styles.stepConnector} />
+            </View>
+
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Describe the issue</Text>
+              <Text style={styles.stepDescription}>
+                Provide details and attach photos that help explain the damage.
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.stepRow, styles.lastStepRow]}>
+            <View style={styles.stepMarkerColumn}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>03</Text>
+              </View>
+            </View>
+
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Submit your report</Text>
+              <Text style={styles.stepDescription}>
+                Send it for review and follow its progress from your reports tab.
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
-    </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View style={styles.footerRule} />
+        <Text style={styles.footerTitle}>PROPERTY CARE</Text>
+        <Text style={styles.footerCaption}>
+          Taking care of our school, together.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.lighterMaroon,
-  },
-
   container: {
     flex: 1,
+    backgroundColor: "#F6F5F7",
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Spacing.xl,
+  contentContainer: {
+    paddingBottom: 34,
   },
 
-  header: {
-    backgroundColor: COLORS.maroon,
-    paddingTop: 54,
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-  },
-
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  loadingContainer: {
+    flex: 1,
     alignItems: "center",
-    marginBottom: 22,
+    justifyContent: "center",
+    backgroundColor: "#F6F5F7",
+    paddingHorizontal: 24,
   },
 
-  brandMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.45)",
-    backgroundColor: "rgba(255,255,255,0.12)",
+  loadingLogo: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: COLORS.maroon,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  brandMarkText: {
-    color: COLORS.white,
-    fontSize: 13,
+  loadingLogoText: {
+    color: "#FFFFFF",
+    fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0.5,
   },
 
-  logoutButton: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.75)",
-    borderRadius: 9,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
-    minWidth: 64,
-    alignItems: "center",
+  loadingSpinner: {
+    marginTop: 24,
   },
 
-  disabledButton: {
-    opacity: 0.6,
-  },
-
-  logoutText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  smallTitle: {
-    color: "#EED5DC",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.3,
-  },
-
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 27,
-    fontWeight: "900",
-    marginTop: 7,
-  },
-
-  headerSubtitle: {
-    color: "#F6E9ED",
+  loadingText: {
+    marginTop: 12,
+    color: "#77717A",
     fontSize: 13,
-    lineHeight: 19,
-    marginTop: 7,
-    maxWidth: 310,
   },
 
-  content: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-  },
-
-  mainActionCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 25,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-
-  actionIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "#F7E9EE",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  actionIcon: {
-    color: COLORS.maroon,
-    fontSize: 26,
-    fontWeight: "500",
-    lineHeight: 29,
-  },
-
-  mainActionEyebrow: {
-    color: COLORS.maroon,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.9,
-  },
-
-  mainActionTitle: {
-    color: COLORS.text,
-    fontSize: 19,
-    fontWeight: "900",
-    marginTop: 5,
-  },
-
-  mainActionDescription: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
-  },
-
-  mainActionButton: {
-    marginTop: 17,
+  header: {
     backgroundColor: COLORS.maroon,
-    borderRadius: 10,
-    minHeight: 45,
-    paddingHorizontal: 15,
+    paddingTop: 50,
+    paddingHorizontal: 22,
+    paddingBottom: 42,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: "hidden",
+  },
+
+  headerTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  mainActionButtonText: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: "800",
+  brand: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
-  buttonArrow: {
-    color: COLORS.white,
-    fontSize: 24,
-    lineHeight: 25,
-    marginTop: -2,
+  brandIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
   },
 
-  sectionHeader: {
-    marginBottom: Spacing.md,
-  },
-
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 17,
+  brandIconText: {
+    color: COLORS.maroon,
+    fontSize: 15,
     fontWeight: "900",
   },
 
-  sectionSubtitle: {
-    color: COLORS.textSecondary,
+  brandName: {
+    color: "#FFFFFF",
     fontSize: 12,
-    lineHeight: 17,
-    marginTop: 4,
+    fontWeight: "900",
+    letterSpacing: 1.1,
   },
 
-  activityCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: Spacing.md,
-    marginBottom: 25,
+  brandCaption: {
+    color: "#E8C9D1",
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    marginTop: 3,
   },
 
-  activityRow: {
+  headerTag: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 76,
-    paddingVertical: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.13)",
   },
 
-  activityIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#F7E9EE",
+  headerTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#F4D6A0",
+    marginRight: 6,
+  },
+
+  headerTagText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+
+  welcomeBlock: {
+    marginTop: 34,
+    zIndex: 1,
+  },
+
+  welcomeEyebrow: {
+    color: "#EACFD6",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 9,
+  },
+
+  welcomeTitle: {
+    color: "#FFFFFF",
+    fontSize: 29,
+    fontWeight: "900",
+    letterSpacing: -0.7,
+    marginBottom: 9,
+  },
+
+  welcomeSubtitle: {
+    color: "#F6E9EC",
+    fontSize: 13,
+    lineHeight: 20,
+    maxWidth: 290,
+  },
+
+  headerDecoration: {
+    position: "absolute",
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    right: -78,
+    bottom: -70,
+  },
+
+  headerDecorationSmall: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+    right: -20,
+    bottom: -40,
+  },
+
+  profileCard: {
+    marginHorizontal: 20,
+    marginTop: -20,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#24121A",
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    zIndex: 2,
+  },
+
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: "#F4E8EB",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
 
-  activityIcon: {
+  avatarText: {
     color: COLORS.maroon,
-    fontSize: 21,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "900",
   },
 
-  activityTextBlock: {
+  profileText: {
     flex: 1,
   },
 
-  activityTitle: {
-    color: COLORS.text,
-    fontSize: 13,
+  profileOverline: {
+    color: "#9A9298",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+    marginBottom: 4,
+  },
+
+  profileName: {
+    color: "#29242A",
+    fontSize: 14,
     fontWeight: "800",
   },
 
-  activityDescription: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 3,
-  },
-
-  rowArrow: {
-    color: COLORS.maroon,
-    fontSize: 25,
-    marginLeft: 8,
-  },
-
-  rowDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-
-  exploreGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 25,
-  },
-
-  exploreCard: {
-    width: "48.3%",
-    minHeight: 175,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: Spacing.md,
-  },
-
-  exploreIconCircle: {
-    width: 38,
-    height: 38,
+  profileCheck: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
+    backgroundColor: "#EAF4ED",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
 
-  mapIconCircle: {
-    backgroundColor: "#E8F1EA",
-  },
-
-  feedbackIconCircle: {
-    backgroundColor: "#F7E9EE",
-  },
-
-  exploreIcon: {
-    color: COLORS.maroon,
-    fontSize: 21,
-    fontWeight: "700",
-  },
-
-  exploreTitle: {
-    color: COLORS.text,
+  profileCheckText: {
+    color: "#398452",
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
-  exploreDescription: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 5,
-    flex: 1,
+  section: {
+    marginTop: 28,
+    marginHorizontal: 20,
   },
 
-  exploreLink: {
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+
+  sectionEyebrow: {
     color: COLORS.maroon,
-    fontSize: 11,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 5,
+  },
+
+  sectionTitle: {
+    color: "#29242A",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+
+  reportCard: {
+    backgroundColor: COLORS.maroon,
+    borderRadius: 22,
+    padding: 19,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#4A0C20",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+  },
+
+  reportCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 19,
+  },
+
+  reportIconCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  reportIcon: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "400",
+    lineHeight: 31,
+    marginTop: -2,
+  },
+
+  actionBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+
+  actionBadgeText: {
+    color: "#F9E8ED",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  reportTitle: {
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+    marginBottom: 7,
+  },
+
+  reportDescription: {
+    color: "#F5E6EA",
+    fontSize: 12,
+    lineHeight: 18,
+    maxWidth: 285,
+  },
+
+  reportCardFooter: {
+    marginTop: 20,
+    paddingTop: 13,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.18)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  reportButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
     fontWeight: "800",
+  },
+
+  reportArrowCircle: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  reportArrow: {
+    color: COLORS.maroon,
+    fontSize: 23,
+    lineHeight: 25,
+    marginTop: -2,
+  },
+
+  mapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: "#EEE9EC",
+    elevation: 1,
+    shadowColor: "#24121A",
+    shadowOpacity: 0.04,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+  },
+
+  mapIllustration: {
+    width: 94,
+    height: 106,
+    borderRadius: 15,
+    backgroundColor: "#F5ECEF",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  mapGridLineOne: {
+    position: "absolute",
+    width: 120,
+    height: 1,
+    backgroundColor: "#E6D4DA",
+    transform: [{ rotate: "35deg" }],
+  },
+
+  mapGridLineTwo: {
+    position: "absolute",
+    width: 120,
+    height: 1,
+    backgroundColor: "#E6D4DA",
+    transform: [{ rotate: "-35deg" }],
+  },
+
+  mapGridLineThree: {
+    position: "absolute",
+    width: 1,
+    height: 130,
+    backgroundColor: "#E6D4DA",
+    transform: [{ rotate: "18deg" }],
+  },
+
+  mapPinOuter: {
+    width: 47,
+    height: 47,
+    borderRadius: 16,
+    backgroundColor: COLORS.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#4A0C20",
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+
+  mapPin: {
+    color: "#FFFFFF",
+    fontSize: 27,
+    fontWeight: "700",
+    lineHeight: 31,
+  },
+
+  mapContent: {
+    flex: 1,
+    paddingVertical: 3,
+  },
+
+  mapTitle: {
+    color: "#29242A",
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 6,
+  },
+
+  mapDescription: {
+    color: "#77717A",
+    fontSize: 11,
+    lineHeight: 17,
+  },
+
+  mapLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 12,
   },
 
+  mapLinkText: {
+    color: COLORS.maroon,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  mapLinkArrow: {
+    color: COLORS.maroon,
+    fontSize: 15,
+    fontWeight: "800",
+    marginLeft: 6,
+  },
+
   stepsCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 6,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: Spacing.md,
-    paddingTop: 16,
-    paddingBottom: 5,
-    marginBottom: 18,
+    borderColor: "#EEE9EC",
   },
 
   stepRow: {
     flexDirection: "row",
-    minHeight: 72,
+    alignItems: "stretch",
+    minHeight: 75,
   },
 
-  stepNumberColumn: {
-    width: 40,
+  lastStepRow: {
+    minHeight: 65,
+  },
+
+  stepMarkerColumn: {
+    width: 39,
     alignItems: "center",
-    marginRight: 11,
   },
 
-  stepNumberCircle: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: "#F7E9EE",
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: "#F4E8EB",
     alignItems: "center",
     justifyContent: "center",
   },
 
   stepNumberText: {
     color: COLORS.maroon,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "900",
+    letterSpacing: 0.3,
   },
 
   stepConnector: {
-    width: 1,
+    width: 2,
     flex: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 4,
+    minHeight: 27,
+    backgroundColor: "#EADDE1",
+    marginTop: 5,
+    marginBottom: 4,
   },
 
-  stepTextBlock: {
+  stepContent: {
     flex: 1,
-    paddingBottom: 16,
+    paddingLeft: 9,
+    paddingBottom: 17,
   },
 
   stepTitle: {
-    color: COLORS.text,
-    fontSize: 12,
+    color: "#29242A",
+    fontSize: 13,
     fontWeight: "800",
     marginTop: 2,
+    marginBottom: 5,
   },
 
   stepDescription: {
-    color: COLORS.textSecondary,
+    color: "#77717A",
     fontSize: 11,
-    lineHeight: 16,
-    marginTop: 4,
+    lineHeight: 17,
   },
 
-  settingsShortcut: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
-    flexDirection: "row",
+  footer: {
     alignItems: "center",
-    justifyContent: "space-between",
+    marginTop: 31,
+    paddingHorizontal: 20,
   },
 
-  settingsShortcutText: {
-    flex: 1,
-    paddingRight: 8,
+  footerRule: {
+    width: 34,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#D9C1C9",
+    marginBottom: 13,
   },
 
-  settingsShortcutTitle: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "800",
+  footerTitle: {
+    color: COLORS.maroon,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.8,
+    marginBottom: 5,
   },
 
-  settingsShortcutDescription: {
-    color: COLORS.textSecondary,
+  footerCaption: {
+    color: "#A19AA0",
     fontSize: 11,
-    lineHeight: 16,
-    marginTop: 4,
-  },
-
-  footerNote: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    textAlign: "center",
-    marginTop: 22,
-    marginBottom: 8,
   },
 });

@@ -5,7 +5,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import {
+  router,
+  useLocalSearchParams,
+} from "expo-router";
 
 import { COLORS, Spacing } from "../../constants/theme";
 import InteractiveMap from "../../components/InteractiveMap";
@@ -16,77 +19,191 @@ import {
 
 const campusMap = require("../../../assets/maps/Campus_Map.png");
 
-export default function CampusMapScreen() {
-  // InteractiveMap positions hotspots using left/top coordinates.
-  // The hotspot data is stored in the updated map's original pixel space.
-  const mapHotspots = CAMPUS_HOTSPOTS.map((hotspot) => ({
-    ...hotspot,
-    left: hotspot.x,
-    top: hotspot.y,
-  }));
+type RouteParam = string | string[] | undefined;
 
-  const openLocation = (hotspot: CampusHotspot) => {
-  if (hotspot.type === "building") {
+const getParam = (value: RouteParam): string => {
+  return Array.isArray(value)
+    ? value[0] ?? ""
+    : value ?? "";
+};
+
+export default function CampusMapScreen() {
+  const params = useLocalSearchParams<{
+    returnTo?: string | string[];
+  }>();
+
+  const returnTo = getParam(params.returnTo);
+
+  /*
+   * If the map was opened from Report Damage:
+   *
+   * Report Damage
+   *      ↓
+   * Campus Map
+   *
+   * Back should return to Report Damage.
+   *
+   * If the map was opened directly from Home:
+   *
+   * Home
+   *   ↓
+   * Campus Map
+   *
+   * Back should return to Home.
+   */
+  const goBack = () => {
+    if (returnTo === "/user/report-damage") {
+      router.replace("/user/report-damage" as any);
+      return;
+    }
+
+    router.replace("/user/user-dashboard" as any);
+  };
+
+  /*
+   * InteractiveMap expects left/top.
+   *
+   * Our hotspot data is stored using the original
+   * Campus_Map.png pixel coordinates.
+   */
+  const mapHotspots = CAMPUS_HOTSPOTS.map(
+    (hotspot) => ({
+      ...hotspot,
+      left: hotspot.x,
+      top: hotspot.y,
+    })
+  );
+
+  const openLocation = (
+    hotspot: CampusHotspot
+  ) => {
+    // =====================================================
+    // BUILDING
+    // =====================================================
+
+    if (hotspot.type === "building") {
+      router.push({
+        pathname: "/user/building-map",
+        params: {
+          building: hotspot.id,
+          name: hotspot.name,
+
+          // Keep track of where the campus map came from.
+          returnTo: returnTo || "/user/user-dashboard",
+        },
+      } as any);
+
+      return;
+    }
+
+    // =====================================================
+    // FACILITY
+    // =====================================================
+
+    /*
+     * Facilities are stored in Laravel as rooms under:
+     *
+     * Campus Facilities
+     *
+     * Example:
+     *
+     * Campus Facilities
+     *   └── Parking Area
+     *
+     * Campus Facilities
+     *   └── Canteen
+     *
+     * Campus Facilities
+     *   └── Clinic
+     */
+
+    const buildingId =
+      hotspot.reportBuildingId ??
+      "campus-facilities";
+
+    const buildingName =
+      hotspot.reportBuildingName ??
+      "Campus Facilities";
+
+    const roomId =
+      hotspot.reportRoomId ??
+      hotspot.id;
+
+    const roomName =
+      hotspot.reportRoomName ??
+      hotspot.name;
+
     router.push({
-      pathname: "/user/building-map",
+      pathname: "/user/report-damage",
       params: {
-        building: hotspot.id,
-        name: hotspot.name,
+        building: buildingId,
+        buildingName: buildingName,
+        room: roomId,
+        roomName: roomName,
+
+        /*
+         * This tells Report Damage where the user
+         * originally came from.
+         */
+        returnTo: returnTo || "/user/user-dashboard",
       },
     } as any);
-
-    return;
-  }
-
-  // Campus facilities (such as Guidance Room) go directly to the report form.
-  router.push({
-    pathname: "/user/report-damage",
-    params: {
-      building: hotspot.id,
-      buildingName: hotspot.name,
-      room: hotspot.id,
-      roomName: hotspot.name,
-    },
-  } as any);
-};
+  };
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {/* ===================================================
+          HEADER
+      =================================================== */}
+
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={goBack}
           style={styles.backButton}
           accessibilityRole="button"
           accessibilityLabel="Go back"
+          activeOpacity={0.8}
         >
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
 
         <View style={styles.headerText}>
-          <Text style={styles.title}>Select Location</Text>
+          <Text style={styles.title}>
+            Select Location
+          </Text>
+
           <Text style={styles.subtitle}>
-            Tap the building, room, or facility where the damage occurred
+            Tap the building, room, or facility where
+            the damage occurred
           </Text>
         </View>
       </View>
 
-      {/* MAP */}
+      {/* ===================================================
+          MAP
+      =================================================== */}
+
       <View style={styles.mapArea}>
         <InteractiveMap
           image={campusMap}
           hotspots={mapHotspots}
           onPress={(hotspot) =>
-            openLocation(hotspot as unknown as CampusHotspot)
+            openLocation(
+              hotspot as unknown as CampusHotspot
+            )
           }
           debug={false}
         />
       </View>
 
-      {/* FOOTER */}
+      {/* ===================================================
+          FOOTER
+      =================================================== */}
+
       <View style={styles.instruction}>
         <Text style={styles.instructionText}>
-          Pinch to zoom • Drag to move • Double tap to reset
+          Pinch to zoom • Drag to move • Double tap to
+          reset
         </Text>
       </View>
     </View>
