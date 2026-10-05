@@ -7,13 +7,16 @@ import {
   Text,
   View,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import { C } from "../../constants/palette";
 import { Page, Header, Card, Button, Pill } from "../../components/Kit";
 import { apiRequest } from "../../services/api";
 
-type Photo = { id: number; url: string };
+type Photo = {
+  id: number;
+  url: string;
+};
 
 type ReportDetails = {
   id: number;
@@ -42,7 +45,9 @@ export default function AdminReportDetails() {
 
   const loadReport = useCallback(async () => {
     if (!id) {
-      setError("No report ID was provided. Open this page from the report list.");
+      setError(
+        "No report ID was provided. Open this page from the report list."
+      );
       setLoading(false);
       return;
     }
@@ -71,7 +76,9 @@ export default function AdminReportDetails() {
     loadReport();
   }, [loadReport]);
 
-  const updateStatus = (status: "verified" | "rejected" | "completed") => {
+  const updateStatus = (
+    status: "verified" | "rejected" | "completed"
+  ) => {
     const actionLabels = {
       verified: "accept this report",
       rejected: "reject this report",
@@ -82,7 +89,10 @@ export default function AdminReportDetails() {
       "Confirm action",
       `Are you sure you want to ${actionLabels[status]}?`,
       [
-        { text: "Cancel", style: "cancel" },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
         {
           text: "Confirm",
           onPress: async () => {
@@ -100,11 +110,17 @@ export default function AdminReportDetails() {
               );
 
               const updated = result?.data ?? result;
+
               setReport((current) =>
-                current ? { ...current, ...updated } : updated
+                current
+                  ? { ...current, ...updated }
+                  : updated
               );
 
-              Alert.alert("Updated", "The report status has been updated.");
+              Alert.alert(
+                "Updated",
+                "The report status has been updated."
+              );
             } catch (err) {
               Alert.alert(
                 "Update failed",
@@ -121,13 +137,31 @@ export default function AdminReportDetails() {
     );
   };
 
+  /* =========================================================
+     LOADING
+  ========================================================= */
+
   if (loading) {
     return (
       <Page>
-        <Header title="Report details" sub="Loading report..." back />
+        <View style={{ paddingTop: 12 }}>
+          <Header
+            title="Report details"
+            sub="Loading report..."
+            back
+          />
+        </View>
+
         <Card>
           <ActivityIndicator color={C.maroon} />
-          <Text style={{ textAlign: "center", color: C.muted }}>
+
+          <Text
+            style={{
+              textAlign: "center",
+              color: C.muted,
+              marginTop: 8,
+            }}
+          >
             Loading report details...
           </Text>
         </Card>
@@ -135,37 +169,85 @@ export default function AdminReportDetails() {
     );
   }
 
+  /* =========================================================
+     ERROR
+  ========================================================= */
+
   if (error || !report) {
     return (
       <Page>
-        <Header title="Report details" sub="Unable to display report" back />
+        <View style={{ paddingTop: 12 }}>
+          <Header
+            title="Report details"
+            sub="Unable to display report"
+            back
+          />
+        </View>
+
         <Card>
-          <Text style={{ color: C.maroon, fontWeight: "800" }}>
+          <Text
+            style={{
+              color: C.maroon,
+              fontWeight: "800",
+              fontSize: 16,
+            }}
+          >
             Could not load report
           </Text>
-          <Text style={{ color: C.muted }}>
+
+          <Text
+            style={{
+              color: C.muted,
+              marginTop: 6,
+              lineHeight: 20,
+            }}
+          >
             {error || "The requested report was not found."}
           </Text>
-          <Button title="Try again" outline onPress={loadReport} />
+
+          <Button
+            title="Try again"
+            outline
+            onPress={loadReport}
+          />
         </Card>
       </Page>
     );
   }
 
+  /* =========================================================
+     REPORT DATA
+  ========================================================= */
+
   const reportDate = report.created_at
     ? new Date(report.created_at).toLocaleDateString()
     : "Date unavailable";
 
-  const statusLabel = report.status.replaceAll("_", " ").toUpperCase();
+  const statusLabel = report.status
+    .replaceAll("_", " ")
+    .toUpperCase();
+
   const actionDisabled = savingStatus !== "";
+
+  /* =========================================================
+     MAIN SCREEN
+  ========================================================= */
 
   return (
     <Page>
-      <Header
-        title="Report details"
-        sub={report.report_number}
-        back
-      />
+
+      {/* Slightly lower, matching the user report details */}
+      <View style={{ paddingTop: 12 }}>
+        <Header
+          title="Report details"
+          sub={report.report_number}
+          back
+        />
+      </View>
+
+      {/* =====================================================
+          REPORT INFORMATION
+      ===================================================== */}
 
       <Card>
         <View
@@ -190,17 +272,38 @@ export default function AdminReportDetails() {
           <Pill>{statusLabel}</Pill>
         </View>
 
-        <Text style={{ color: C.muted }}>
+        <Text
+          style={{
+            color: C.muted,
+            marginTop: 4,
+          }}
+        >
           {report.building_name}
-          {report.room_name ? ` · ${report.room_name}` : ""}
+          {report.room_name
+            ? ` · ${report.room_name}`
+            : ""}
         </Text>
 
-        <Text style={{ color: C.ink, lineHeight: 21 }}>
+        <Text
+          style={{
+            color: C.ink,
+            lineHeight: 21,
+            marginTop: 8,
+          }}
+        >
           {report.description}
         </Text>
 
+        {/* =================================================
+            PHOTOS
+        ================================================= */}
+
         {report.photos && report.photos.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 12 }}
+          >
             {report.photos.map((photo) => (
               <Image
                 key={photo.id}
@@ -223,6 +326,7 @@ export default function AdminReportDetails() {
               borderRadius: 10,
               alignItems: "center",
               justifyContent: "center",
+              marginTop: 12,
             }}
           >
             <Text style={{ color: C.muted }}>
@@ -231,19 +335,47 @@ export default function AdminReportDetails() {
           </View>
         )}
 
-        <Text style={{ color: C.muted, fontSize: 12 }}>
-          Reporter: {report.user?.name ?? "Unknown user"} · {reportDate}
+        {/* =================================================
+            REPORTER
+        ================================================= */}
+
+        <Text
+          style={{
+            color: C.muted,
+            fontSize: 12,
+            marginTop: 12,
+          }}
+        >
+          Reporter: {report.user?.name ?? "Unknown user"} ·{" "}
+          {reportDate}
         </Text>
 
         {report.priority ? (
-          <Text style={{ color: C.muted, fontSize: 12 }}>
+          <Text
+            style={{
+              color: C.muted,
+              fontSize: 12,
+              marginTop: 4,
+            }}
+          >
             Priority: {report.priority.toUpperCase()}
           </Text>
         ) : null}
       </Card>
 
+      {/* =====================================================
+          ADMIN ACTIONS
+      ===================================================== */}
+
       <Card>
-        <Text style={{ fontWeight: "800", color: C.ink }}>
+        <Text
+          style={{
+            fontWeight: "800",
+            color: C.ink,
+            fontSize: 16,
+            marginBottom: 4,
+          }}
+        >
           Admin actions
         </Text>
 
@@ -254,7 +386,9 @@ export default function AdminReportDetails() {
               : "Accept report"
           }
           onPress={() => {
-            if (!actionDisabled) updateStatus("verified");
+            if (!actionDisabled) {
+              updateStatus("verified");
+            }
           }}
         />
 
@@ -266,7 +400,9 @@ export default function AdminReportDetails() {
           }
           outline
           onPress={() => {
-            if (!actionDisabled) updateStatus("rejected");
+            if (!actionDisabled) {
+              updateStatus("rejected");
+            }
           }}
         />
 
@@ -278,7 +414,9 @@ export default function AdminReportDetails() {
           }
           outline
           onPress={() => {
-            if (!actionDisabled) updateStatus("completed");
+            if (!actionDisabled) {
+              updateStatus("completed");
+            }
           }}
         />
       </Card>

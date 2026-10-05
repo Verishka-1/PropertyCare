@@ -1,6 +1,12 @@
-import React, { useCallback, useState } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+
 import {
-  ActivityIndicator,
+  Image,
+  type ImageSourcePropType,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -8,650 +14,1689 @@ import {
   Text,
   View,
 } from "react-native";
+
 import {
   router,
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
 
-import { COLORS, Spacing } from "../../constants/theme";
+import AdminInteractiveMap, {
+  type MapHotspot,
+} from "../../components/AdminInteractiveMap";
+
+import {
+  COLORS,
+  Spacing,
+} from "../../constants/theme";
+
 import { apiRequest } from "../../services/api";
 
-type Room = {
+/* =========================================================
+ * BUILDING MAP IMAGES
+ * ======================================================= */
+
+const building1Map =
+  require("../../../assets/maps/Building1.png");
+
+const building2Map =
+  require("../../../assets/maps/Building2.png");
+
+const buildingCRMap =
+  require("../../../assets/maps/BuildingCR.png");
+
+const oldBuildingMap =
+  require("../../../assets/maps/Old_Building.png");
+
+/* =========================================================
+ * HOTSPOT TYPES
+ * ======================================================= */
+
+type PercentageHotspot = {
+  id: string;
   name: string;
+
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+
+  type:
+    | "building"
+    | "facility"
+    | "room";
 };
 
-type Floor = {
+type BuildingConfig = {
   name: string;
-  rooms: Room[];
+  image: ImageSourcePropType;
+  hotspots: PercentageHotspot[];
 };
 
-type Building = {
-  title: string;
-  floors: Floor[];
-};
+/* =========================================================
+ * BUILDING 1
+ * ======================================================= */
 
-type BuildingMapResponse = {
-  // The API should return counts keyed by room name, e.g. "B1 309": 2.
-  room_counts?: Record<string, number>;
-  room_counts_by_name?: Record<string, number>;
-};
+const BUILDING_1_ROOMS: PercentageHotspot[] = [
+  {
+    id: "br309",
+    name: "B1 309",
+    x: 11.7,
+    y: 17.0,
+    width: 15.7,
+    height: 13.1,
+    type: "room",
+  },
 
-const BUILDINGS: Record<string, Building> = {
+  {
+    id: "br310",
+    name: "B1 310",
+    x: 29.7,
+    y: 17.0,
+    width: 16.9,
+    height: 13.1,
+    type: "room",
+  },
+
+  {
+    id: "br311",
+    name: "B1 311",
+    x: 50.0,
+    y: 16.7,
+    width: 15.8,
+    height: 13.4,
+    type: "room",
+  },
+
+  {
+    id: "br312",
+    name: "B1 312",
+    x: 70.0,
+    y: 16.7,
+    width: 16.1,
+    height: 13.4,
+    type: "room",
+  },
+
+  {
+    id: "br205",
+    name: "B1 205",
+    x: 11.2,
+    y: 40.5,
+    width: 15.7,
+    height: 13.4,
+    type: "room",
+  },
+
+  {
+    id: "br206",
+    name: "B1 206",
+    x: 29.7,
+    y: 40.5,
+    width: 16.9,
+    height: 13.4,
+    type: "room",
+  },
+
+  {
+    id: "br207",
+    name: "B1 207",
+    x: 50.1,
+    y: 40.5,
+    width: 15.9,
+    height: 13.5,
+    type: "room",
+  },
+
+  {
+    id: "br208",
+    name: "B1 208",
+    x: 70.0,
+    y: 40.4,
+    width: 16.1,
+    height: 13.4,
+    type: "room",
+  },
+
+  {
+    id: "br101",
+    name: "B1 101",
+    x: 11.2,
+    y: 68.0,
+    width: 15.7,
+    height: 13.0,
+    type: "room",
+  },
+
+  {
+    id: "br102",
+    name: "B1 102",
+    x: 29.7,
+    y: 68.0,
+    width: 16.9,
+    height: 13.0,
+    type: "room",
+  },
+
+  {
+    id: "br103",
+    name: "B1 103",
+    x: 50.1,
+    y: 68.0,
+    width: 15.9,
+    height: 13.0,
+    type: "room",
+  },
+
+  {
+    id: "br104",
+    name: "B1 104",
+    x: 70.0,
+    y: 68.0,
+    width: 16.1,
+    height: 13.0,
+    type: "room",
+  },
+];
+
+/* =========================================================
+ * BUILDING 2
+ * ======================================================= */
+
+const BUILDING_2_ROOMS: PercentageHotspot[] = [
+  {
+    id: "br313",
+    name: "B2 313",
+    x: 5.2,
+    y: 13.1,
+    width: 14.0,
+    height: 11.2,
+    type: "room",
+  },
+
+  {
+    id: "br314",
+    name: "B2 314",
+    x: 21.0,
+    y: 13.1,
+    width: 14.6,
+    height: 11.2,
+    type: "room",
+  },
+
+  {
+    id: "br315",
+    name: "B2 315",
+    x: 37.0,
+    y: 13.2,
+    width: 13.9,
+    height: 11.1,
+    type: "room",
+  },
+
+  {
+    id: "br316",
+    name: "B2 316",
+    x: 52.7,
+    y: 13.2,
+    width: 13.2,
+    height: 11.1,
+    type: "room",
+  },
+
+  {
+    id: "br317",
+    name: "B2 317",
+    x: 68.2,
+    y: 13.2,
+    width: 13.7,
+    height: 11.1,
+    type: "room",
+  },
+
+  {
+    id: "br318",
+    name: "B2 318",
+    x: 83.7,
+    y: 13.2,
+    width: 12.1,
+    height: 11.1,
+    type: "room",
+  },
+
+  {
+    id: "br212",
+    name: "B2 212",
+    x: 5.2,
+    y: 38.8,
+    width: 14.0,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br211",
+    name: "B2 211",
+    x: 21.0,
+    y: 38.8,
+    width: 14.6,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br210",
+    name: "B2 210",
+    x: 37.0,
+    y: 38.8,
+    width: 13.9,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br209",
+    name: "B2 209",
+    x: 52.7,
+    y: 38.8,
+    width: 13.2,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br208",
+    name: "B2 208",
+    x: 68.2,
+    y: 38.8,
+    width: 13.7,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br207",
+    name: "B2 207",
+    x: 83.7,
+    y: 38.8,
+    width: 12.1,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br101",
+    name: "B2 101",
+    x: 5.2,
+    y: 65.1,
+    width: 14.0,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br102",
+    name: "B2 102",
+    x: 21.0,
+    y: 65.1,
+    width: 14.6,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br103",
+    name: "B2 103",
+    x: 37.0,
+    y: 65.1,
+    width: 13.9,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br104",
+    name: "B2 104",
+    x: 52.7,
+    y: 65.1,
+    width: 13.2,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br105",
+    name: "B2 105",
+    x: 68.2,
+    y: 65.1,
+    width: 13.7,
+    height: 11.3,
+    type: "room",
+  },
+
+  {
+    id: "br106",
+    name: "B2 106",
+    x: 83.7,
+    y: 65.1,
+    width: 12.1,
+    height: 11.3,
+    type: "room",
+  },
+];
+
+/* =========================================================
+ * BUILDING CR
+ * ======================================================= */
+
+const BUILDING_CR_ROOMS: PercentageHotspot[] = [
+  {
+    id: "female-cr3",
+    name: "Female CR3",
+    x: 21.15,
+    y: 18.35,
+    width: 28.6,
+    height: 14.1,
+    type: "room",
+  },
+
+  {
+    id: "male-cr3",
+    name: "Male CR3",
+    x: 51.5,
+    y: 18.5,
+    width: 28.35,
+    height: 14.1,
+    type: "room",
+  },
+
+  {
+    id: "female-cr2",
+    name: "Female CR2",
+    x: 21.15,
+    y: 42.8,
+    width: 28.6,
+    height: 14.1,
+    type: "room",
+  },
+
+  {
+    id: "male-cr2",
+    name: "Male CR2",
+    x: 51.5,
+    y: 42.8,
+    width: 28.35,
+    height: 14.1,
+    type: "room",
+  },
+
+  {
+    id: "female-cr1",
+    name: "Female CR1",
+    x: 21.15,
+    y: 64.05,
+    width: 28.6,
+    height: 14.1,
+    type: "room",
+  },
+
+  {
+    id: "male-cr1",
+    name: "Male CR1",
+    x: 51.5,
+    y: 64.05,
+    width: 28.35,
+    height: 14.1,
+    type: "room",
+  },
+];
+
+/* =========================================================
+ * OLD BUILDING
+ * ======================================================= */
+
+const OLD_BUILDING_ROOMS: PercentageHotspot[] = [
+  {
+    id: "rv302",
+    name: "RV302",
+    x: 10.5,
+    y: 19.85,
+    width: 25.65,
+    height: 15.15,
+    type: "room",
+  },
+
+  {
+    id: "rv301",
+    name: "RV301",
+    x: 37.95,
+    y: 19.85,
+    width: 25.4,
+    height: 15.15,
+    type: "room",
+  },
+
+  {
+    id: "avr",
+    name: "AVR",
+    x: 65.35,
+    y: 19.85,
+    width: 24.65,
+    height: 15.6,
+    type: "room",
+  },
+
+  {
+    id: "comlabv2",
+    name: "ComLabV2",
+    x: 10.5,
+    y: 40.2,
+    width: 25.65,
+    height: 15.15,
+    type: "room",
+  },
+
+  {
+    id: "comlabv1",
+    name: "ComLabV1",
+    x: 37.95,
+    y: 40.65,
+    width: 25.4,
+    height: 15.15,
+    type: "room",
+  },
+
+  {
+    id: "comlabv3",
+    name: "ComLabV3",
+    x: 65.35,
+    y: 40.2,
+    width: 24.65,
+    height: 15.6,
+    type: "room",
+  },
+
+  {
+    id: "electrical-lab",
+    name: "Electrical Lab",
+    x: 10.5,
+    y: 61.45,
+    width: 37.8,
+    height: 15.15,
+    type: "room",
+  },
+
+  {
+    id: "engineering-lab",
+    name: "Engineering Lab",
+    x: 50.6,
+    y: 61.45,
+    width: 39.4,
+    height: 15.15,
+    type: "room",
+  },
+];
+
+/* =========================================================
+ * BUILDINGS
+ * ======================================================= */
+
+const BUILDINGS: Record<
+  string,
+  BuildingConfig
+> = {
   building1: {
-    title: "Building 1",
-    floors: [
-      {
-        name: "3rd Floor",
-        rooms: ["B1 309", "B1 310", "B1 311", "B1 312"].map((name) => ({
-          name,
-        })),
-      },
-      {
-        name: "2nd Floor",
-        rooms: ["B1 205", "B1 206", "B1 207", "B1 208"].map((name) => ({
-          name,
-        })),
-      },
-      {
-        name: "1st Floor",
-        rooms: ["B1 101", "B1 102", "B1 103", "B1 104"].map((name) => ({
-          name,
-        })),
-      },
-    ],
+    name: "Building 1",
+    image: building1Map,
+    hotspots: BUILDING_1_ROOMS,
   },
 
   building2: {
-    title: "Building 2",
-    floors: [
-      {
-        name: "3rd Floor",
-        rooms: [
-          "B2 313",
-          "B2 314",
-          "B2 315",
-          "B2 316",
-          "B2 317",
-          "B2 318",
-        ].map((name) => ({ name })),
-      },
-      {
-        name: "2nd Floor",
-        rooms: [
-          "B2 212",
-          "B2 211",
-          "B2 210",
-          "B2 209",
-          "B2 208",
-          "B2 207",
-        ].map((name) => ({ name })),
-      },
-      {
-        name: "1st Floor",
-        rooms: [
-          "B2 101",
-          "B2 102",
-          "B2 103",
-          "B2 104",
-          "B2 105",
-          "B2 106",
-        ].map((name) => ({ name })),
-      },
-    ],
+    name: "Building 2",
+    image: building2Map,
+    hotspots: BUILDING_2_ROOMS,
   },
 
   buildingCR: {
-    title: "Building CRs",
-    floors: [
-      {
-        name: "3rd Floor",
-        rooms: [{ name: "Female CR3" }, { name: "Male CR3" }],
-      },
-      {
-        name: "2nd Floor",
-        rooms: [{ name: "Female CR2" }, { name: "Male CR2" }],
-      },
-      {
-        name: "1st Floor",
-        rooms: [{ name: "Female CR1" }, { name: "Male CR1" }],
-      },
-    ],
+    name: "Building CR",
+    image: buildingCRMap,
+    hotspots: BUILDING_CR_ROOMS,
   },
 
   oldBuilding: {
-    title: "Old Building",
-    floors: [
-      {
-        name: "3rd Floor",
-        rooms: [{ name: "Rv302" }, { name: "Rv301" }, { name: "AVR" }],
-      },
-      {
-        name: "2nd Floor",
-        rooms: [
-          { name: "ComLab2" },
-          { name: "ComLab1" },
-          { name: "ComLab3" },
-        ],
-      },
-      {
-        name: "1st Floor",
-        rooms: [
-          { name: "ElectricalLab" },
-          { name: "EngineeringLab" },
-        ],
-      },
-    ],
+    name: "Old Building",
+    image: oldBuildingMap,
+    hotspots: OLD_BUILDING_ROOMS,
   },
 };
 
-/**
- * Replace these example IDs with the actual building IDs in your Laravel DB.
- * They must correspond to the building records used by /admin/building-counts.
- */
-const BUILDING_DATABASE_IDS: Record<string, number> = {
-  building1: 1,
-  building2: 2,
-  oldBuilding: 3,
-  buildingCR: 4,
-};
+/* =========================================================
+ * NORMALIZE BUILDING ID
+ * ======================================================= */
 
-function normalizeRoomName(name: string): string {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+function normalizeBuildingId(
+  value?: string
+): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+  switch (normalized) {
+    case "building1":
+    case "building01":
+      return "building1";
+
+    case "building2":
+    case "building02":
+      return "building2";
+
+    case "buildingcr":
+    case "cr":
+      return "buildingCR";
+
+    case "oldbuilding":
+      return "oldBuilding";
+
+    default:
+      return null;
+  }
 }
 
-function normalizeRoomCounts(
-  response: BuildingMapResponse
+/* =========================================================
+ * NORMALIZE ROOM NAME
+ * ======================================================= */
+
+function normalizeRoomName(
+  name: string
+): string {
+  let value = name
+    .trim()
+    .toLowerCase();
+
+  /*
+   * B1 309 -> 309
+   * B2 313 -> 313
+   */
+  value = value.replace(
+    /^b(?:1|2)\s*/,
+    ""
+  );
+
+  /*
+   * RV302 -> 302
+   * RV301 -> 301
+   */
+  value = value.replace(
+    /^rv\s*/,
+    ""
+  );
+
+  /*
+   * Remove spaces, -, _, etc.
+   */
+  return value.replace(
+    /[^a-z0-9]/g,
+    ""
+  );
+}
+
+/* =========================================================
+ * CONVERT PERCENTAGE HOTSPOTS
+ * TO REAL PNG PIXELS
+ * ======================================================= */
+
+function convertHotspotsToPixels(
+  image: ImageSourcePropType,
+  hotspots: PercentageHotspot[]
+): MapHotspot[] {
+  const resolved =
+    Image.resolveAssetSource(image);
+
+  const imageWidth =
+    resolved?.width ?? 1;
+
+  const imageHeight =
+    resolved?.height ?? 1;
+
+  return hotspots.map(
+    (hotspot) => ({
+      id: hotspot.id,
+
+      name: hotspot.name,
+
+      type: hotspot.type,
+
+      x:
+        (hotspot.x / 100) *
+        imageWidth,
+
+      y:
+        (hotspot.y / 100) *
+        imageHeight,
+
+      width:
+        (hotspot.width / 100) *
+        imageWidth,
+
+      height:
+        (hotspot.height / 100) *
+        imageHeight,
+    })
+  );
+}
+
+/* =========================================================
+ * API RESPONSE
+ * ======================================================= */
+
+type BuildingMapResponse = {
+  building?: string;
+
+  building_id?: number;
+
+  room_counts?: Record<
+    string,
+    number
+  >;
+
+  room_counts_by_name?: Record<
+    string,
+    number
+  >;
+
+  message?: string;
+};
+
+/* =========================================================
+ * CREATE REPORT COUNTS
+ * ======================================================= */
+
+/*
+ * IMPORTANT:
+ *
+ * The frontend does NOT remove Pending.
+ *
+ * The backend endpoint should return:
+ *
+ * Pending       -> INCLUDED
+ * Verified      -> INCLUDED
+ * For Repair    -> INCLUDED
+ * Repaired      -> INCLUDED
+ * Any other     -> INCLUDED
+ *
+ * Completed     -> EXCLUDED
+ * Rejected      -> EXCLUDED
+ *
+ * Therefore whatever counts arrive here are displayed
+ * directly on the corresponding room.
+ */
+
+function createReportCountsByHotspot(
+  response: BuildingMapResponse,
+  hotspots: MapHotspot[]
 ): Record<string, number> {
   const source =
     response.room_counts_by_name ??
     response.room_counts ??
     {};
 
-  const normalized: Record<string, number> = {};
+  /*
+   * Build normalized lookup.
+   */
+  const normalizedCounts: Record<
+    string,
+    number
+  > = {};
 
-  Object.entries(source).forEach(([roomName, count]) => {
-    normalized[normalizeRoomName(roomName)] = Number(count) || 0;
-  });
+  Object.entries(source).forEach(
+    ([roomName, count]) => {
+      const key =
+        normalizeRoomName(roomName);
 
-  return normalized;
+      if (!key) {
+        return;
+      }
+
+      /*
+       * If multiple database aliases resolve
+       * to the same room, add them instead of
+       * overwriting them.
+       *
+       * Normally there should only be one.
+       */
+      normalizedCounts[key] =
+        Number(count) || 0;
+    }
+  );
+
+  /*
+   * Start every visible hotspot at zero.
+   */
+  const result: Record<
+    string,
+    number
+  > = {};
+
+  hotspots.forEach(
+    (hotspot) => {
+      result[hotspot.id] = 0;
+    }
+  );
+
+  /*
+   * Match each map hotspot to the backend room.
+   */
+  hotspots.forEach(
+    (hotspot) => {
+      const key =
+        normalizeRoomName(
+          hotspot.name
+        );
+
+      result[hotspot.id] =
+        normalizedCounts[key] ?? 0;
+    }
+  );
+
+  return result;
 }
 
+/* =========================================================
+ * SCREEN
+ * ======================================================= */
+
 export default function AdminBuildingMapScreen() {
-  const { building } = useLocalSearchParams<{ building?: string }>();
+  const params =
+    useLocalSearchParams<{
+      building?: string;
+      name?: string;
+    }>();
 
-  const buildingId = Array.isArray(building) ? building[0] : building;
-  const selectedBuildingId = buildingId || "building1";
-  const selectedBuilding = BUILDINGS[selectedBuildingId];
+  const buildingId =
+    Array.isArray(params.building)
+      ? params.building[0]
+      : params.building;
 
-  const [roomCounts, setRoomCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const buildingName =
+    Array.isArray(params.name)
+      ? params.name[0]
+      : params.name;
 
-  const loadRoomCounts = useCallback(async () => {
-    if (!selectedBuilding) {
-      setLoading(false);
-      setRefreshing(false);
-      setError("Unknown building. Return to the campus map and select a building.");
-      return;
-    }
+  const selectedBuildingId =
+    normalizeBuildingId(
+      buildingId
+    );
 
-    const databaseBuildingId =
-      BUILDING_DATABASE_IDS[selectedBuildingId];
+  const selectedBuilding =
+    selectedBuildingId
+      ? BUILDINGS[
+          selectedBuildingId
+        ]
+      : undefined;
 
-    if (typeof databaseBuildingId !== "number") {
-      setLoading(false);
-      setRefreshing(false);
-      setError(
-        "This building has no database ID configured. Update BUILDING_DATABASE_IDS in admin-building-map.tsx."
+  /* =======================================================
+   * HOTSPOTS
+   * ===================================================== */
+
+  const pixelHotspots =
+    useMemo(() => {
+      if (!selectedBuilding) {
+        return [];
+      }
+
+      return convertHotspotsToPixels(
+        selectedBuilding.image,
+        selectedBuilding.hotspots
       );
-      return;
-    }
+    }, [selectedBuilding]);
 
-    try {
-      setError("");
+  /* =======================================================
+   * REPORT COUNTS
+   * ===================================================== */
 
-      const response = (await apiRequest(
-        `/admin/building-counts?building_id=${databaseBuildingId}`
-      )) as BuildingMapResponse;
+  const [
+    reportCounts,
+    setReportCounts,
+  ] = useState<
+    Record<string, number>
+  >({});
 
-      setRoomCounts(normalizeRoomCounts(response ?? {}));
-    } catch (err) {
-      console.error("Failed to load room report counts:", err);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not load room report counts. Please try again."
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedBuilding, selectedBuildingId]);
+  const [
+    refreshing,
+    setRefreshing,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  /* =======================================================
+   * LOAD REAL COUNTS
+   * ===================================================== */
+
+  const loadReportCounts =
+    useCallback(async () => {
+      if (
+        !selectedBuilding ||
+        !selectedBuildingId
+      ) {
+        setLoading(false);
+        setRefreshing(false);
+
+        setError(
+          "Building map not found."
+        );
+
+        return;
+      }
+
+      try {
+        setError("");
+
+        const queryBuilding =
+          encodeURIComponent(
+            selectedBuildingId
+          );
+
+        console.log(
+          "Loading admin building counts:",
+          selectedBuildingId
+        );
+
+        const response =
+          (await apiRequest(
+            `/admin/building-map/counts?building=${queryBuilding}`
+          )) as BuildingMapResponse;
+
+        console.log(
+          "ADMIN BUILDING COUNT RESPONSE:",
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
+
+        /*
+         * The backend is responsible for excluding
+         * Completed and Rejected.
+         *
+         * Pending is intentionally NOT filtered
+         * on the frontend.
+         */
+        const counts =
+          createReportCountsByHotspot(
+            response ?? {},
+            pixelHotspots
+          );
+
+        console.log(
+          "COUNTS USED BY BUILDING MAP:",
+          counts
+        );
+
+        setReportCounts(
+          counts
+        );
+      } catch (err) {
+        console.error(
+          "Failed to load admin building report counts:",
+          err
+        );
+
+        setReportCounts({});
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load report counts."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }, [
+      selectedBuilding,
+      selectedBuildingId,
+      pixelHotspots,
+    ]);
+
+  /* =======================================================
+   * RELOAD WHEN SCREEN OPENS
+   * ===================================================== */
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadRoomCounts();
-    }, [loadRoomCounts])
+
+      loadReportCounts();
+    }, [loadReportCounts])
   );
 
-  const getRoomCount = (roomName: string): number => {
-    return roomCounts[normalizeRoomName(roomName)] ?? 0;
-  };
+  /* =======================================================
+   * TOTAL ACTIVE REPORTS
+   * ======================================================= */
 
-  const totalReports = selectedBuilding
-    ? selectedBuilding.floors.reduce(
-        (total, floor) =>
-          total +
-          floor.rooms.reduce(
-            (floorTotal, room) =>
-              floorTotal + getRoomCount(room.name),
-            0
-          ),
-        0
-      )
-    : 0;
+  const totalReports =
+    Object.values(
+      reportCounts
+    ).reduce(
+      (total, count) =>
+        total +
+        Number(count || 0),
+      0
+    );
 
-  const handleRoomPress = (roomName: string) => {
+  /* =======================================================
+   * ROOM PRESS
+   * ===================================================== */
+
+  const handleRoomPress = (
+    hotspot: MapHotspot
+  ) => {
+    const count =
+      reportCounts[
+        hotspot.id
+      ] ?? 0;
+
+    console.log(
+      "OPENING ADMIN ROOM:",
+      {
+        building:
+          selectedBuildingId,
+
+        buildingName:
+          buildingName ||
+          selectedBuilding?.name,
+
+        room:
+          hotspot.name,
+
+        activeReportCount:
+          count,
+      }
+    );
+
     router.push({
-      pathname: "/admin/admin-room-reports",
+      pathname:
+        "/admin/admin-room-reports",
+
       params: {
-        building: selectedBuildingId,
-        location: roomName,
-        locationId: roomName,
-        room: roomName,
+        building:
+          selectedBuildingId,
+
+        buildingName:
+          buildingName ||
+          selectedBuilding?.name ||
+          "",
+
+        location:
+          hotspot.name,
+
+        locationId:
+          hotspot.name,
+
+        room:
+          hotspot.name,
       },
     } as any);
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadRoomCounts();
-  };
+  /* =======================================================
+   * REFRESH
+   * ===================================================== */
+
+  const handleRefresh =
+    () => {
+      setRefreshing(true);
+
+      loadReportCounts();
+    };
+
+  /* =======================================================
+   * BACK TO CAMPUS MAP
+   * ===================================================== */
+
+  const handleBackToCampus =
+    () => {
+      /*
+       * Explicitly return to the Campus Map.
+       */
+      router.replace(
+        "/admin/admin-campus-map"
+      );
+    };
+
+  /* =======================================================
+   * INVALID BUILDING
+   * ======================================================= */
 
   if (!selectedBuilding) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={8}
+      <View
+        style={
+          styles.errorContainer
+        }
+      >
+        <Text
+          style={
+            styles.errorTitle
+          }
+        >
+          Building map not found
+        </Text>
+
+        <Text
+          style={
+            styles.errorMessage
+          }
+        >
+          The selected building does
+          not have a map configured.
+        </Text>
+
+        <Pressable
+          onPress={
+            handleBackToCampus
+          }
+          style={
+            styles.errorButton
+          }
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to Campus Map"
+        >
+          <Text
+            style={
+              styles.errorButtonText
+            }
           >
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-
-          <Text style={styles.title}>Building Map</Text>
-        </View>
-
-        <View style={styles.centerMessage}>
-          <Text style={styles.errorText}>
-            Unknown building. Return to the campus map and select a building.
+            Back to Campus Map
           </Text>
-        </View>
+        </Pressable>
       </View>
     );
   }
 
+  /* =======================================================
+   * SCREEN
+   * ======================================================= */
+
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
+    <View
+      style={
+        styles.container
+      }
+    >
+      {/* ====================================================
+          HEADER
+          ==================================================== */}
+
+      <View
+        style={
+          styles.header
+        }
+      >
         <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
+          onPress={
+            handleBackToCampus
+          }
+          style={
+            styles.backButton
+          }
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel="Go back to Campus Map"
         >
-          <Text style={styles.backText}>‹</Text>
+          <Text
+            style={
+              styles.backText
+            }
+          >
+            ‹
+          </Text>
         </Pressable>
 
-        <View style={styles.headerText}>
-          <Text style={styles.title}>{selectedBuilding.title}</Text>
-          <Text style={styles.subtitle}>
-            Tap a room to view its damage reports
+        <View
+          style={
+            styles.headerText
+          }
+        >
+          <Text
+            style={
+              styles.title
+            }
+          >
+            {buildingName ||
+              selectedBuilding.name}
+          </Text>
+
+          <Text
+            style={
+              styles.subtitle
+            }
+          >
+            Tap a room to view its reports
           </Text>
         </View>
 
         <Pressable
-          onPress={handleRefresh}
-          style={styles.refreshButton}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Refresh report counts"
+          onPress={
+            handleRefresh
+          }
+          style={[
+            styles.refreshButton,
+
+            loading &&
+              styles.refreshButtonDisabled,
+          ]}
+          disabled={
+            loading
+          }
         >
-          <Text style={styles.refreshText}>Refresh</Text>
+          <Text
+            style={
+              styles.refreshText
+            }
+          >
+            {loading
+              ? "Loading..."
+              : "Refresh"}
+          </Text>
         </Pressable>
       </View>
 
-      {/* BUILDING SUMMARY */}
-      <View style={styles.summary}>
+      {/* ====================================================
+          SUMMARY
+          ==================================================== */}
+
+      <View
+        style={
+          styles.summary
+        }
+      >
         <View>
-          <Text style={styles.summaryLabel}>
-            Total reports in building
+          <Text
+            style={
+              styles.summaryLabel
+            }
+          >
+            Active reports in building
           </Text>
-          <Text style={styles.summaryCount}>
-            {loading ? "…" : totalReports}
+
+          <Text
+            style={
+              styles.summaryCount
+            }
+          >
+            {loading
+              ? "…"
+              : totalReports}
+          </Text>
+
+          <Text
+            style={
+              styles.summarySubtext
+            }
+          >
+            Completed and rejected reports
+            are excluded
           </Text>
         </View>
-
-        {loading ? (
-          <ActivityIndicator color={COLORS.maroon} />
-        ) : null}
       </View>
 
-      {/* ERROR MESSAGE */}
-      {error ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
+      {/* ====================================================
+          ERROR
+          ==================================================== */}
 
-          <Pressable onPress={handleRefresh} disabled={loading}>
-            <Text style={styles.retryText}>Try again</Text>
+      {error ? (
+        <View
+          style={
+            styles.errorBanner
+          }
+        >
+          <Text
+            style={
+              styles.errorText
+            }
+          >
+            {error}
+          </Text>
+
+          <Pressable
+            onPress={
+              handleRefresh
+            }
+          >
+            <Text
+              style={
+                styles.retryText
+              }
+            >
+              Try again
+            </Text>
           </Pressable>
         </View>
       ) : null}
 
-      {/* FLOORS AND ROOMS */}
+      {/* ====================================================
+          MAP
+          ==================================================== */}
+
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={
+          styles.mapScroll
+        }
+        contentContainerStyle={
+          styles.mapScrollContent
+        }
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
+            refreshing={
+              refreshing
+            }
+            onRefresh={
+              handleRefresh
+            }
           />
         }
       >
-        {selectedBuilding.floors.map((floor) => (
-          <View key={floor.name} style={styles.floorSection}>
-            <Text style={styles.floorTitle}>{floor.name}</Text>
-
-            <View style={styles.roomsGrid}>
-              {floor.rooms.map((room) => {
-                const count = getRoomCount(room.name);
-
-                return (
-                  <Pressable
-                    key={room.name}
-                    onPress={() => handleRoomPress(room.name)}
-                    style={({ pressed }) => [
-                      styles.roomCard,
-                      count > 0 && styles.roomCardWithReports,
-                      pressed && styles.roomCardPressed,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${room.name}, ${count} reports. View reports`}
-                  >
-                    <Text style={styles.roomName}>{room.name}</Text>
-
-                    <View
-                      style={[
-                        styles.countBadge,
-                        count > 0 && styles.countBadgeActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.countText,
-                          count > 0 && styles.countTextActive,
-                        ]}
-                      >
-                        {loading ? "…" : count}
-                      </Text>
-                    </View>
-
-                    <Text style={styles.reportLabel}>
-                      {count === 1 ? "report" : "reports"}
-                    </Text>
-
-                    <Text style={styles.tapHint}>
-                      View reports ›
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+        <View
+          style={
+            styles.mapCard
+          }
+        >
+          <AdminInteractiveMap
+            image={
+              selectedBuilding.image
+            }
+            hotspots={
+              pixelHotspots
+            }
+            reportCounts={
+              reportCounts
+            }
+            onPress={
+              handleRoomPress
+            }
+            debug={false}
+          />
+        </View>
       </ScrollView>
 
-      {/* FOOTER */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Room counts show saved reports for this building.
+      {/* ====================================================
+          FOOTER
+          ==================================================== */}
+
+      <View
+        style={
+          styles.footer
+        }
+      >
+        <Text
+          style={
+            styles.footerText
+          }
+        >
+          Red numbers show active damage
+          reports for each room.
+        </Text>
+
+        <Text
+          style={
+            styles.footerSubtext
+          }
+        >
+          Pending reports are included.
         </Text>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.lighterMaroon,
-  },
+/* =========================================================
+ * STYLES
+ * ======================================================= */
 
-  header: {
-    backgroundColor: COLORS.white,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: 50,
-    paddingBottom: Spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
 
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.maroon,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
+      backgroundColor:
+        COLORS.lighterMaroon,
+    },
 
-  backText: {
-    color: COLORS.white,
-    fontSize: 30,
-    lineHeight: 32,
-    marginTop: -3,
-  },
+    /* =====================================================
+     * HEADER
+     * =================================================== */
 
-  headerText: {
-    flex: 1,
-  },
+    header: {
+      backgroundColor:
+        COLORS.white,
 
-  title: {
-    color: COLORS.maroon,
-    fontSize: 20,
-    fontWeight: "800",
-  },
+      paddingHorizontal:
+        Spacing.lg,
 
-  subtitle: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
-  },
+      paddingTop: 50,
 
-  refreshButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 8,
-    backgroundColor: COLORS.lighterMaroon,
-    marginLeft: 8,
-  },
+      paddingBottom:
+        Spacing.md,
 
-  refreshText: {
-    color: COLORS.maroon,
-    fontSize: 12,
-    fontWeight: "700",
-  },
+      flexDirection:
+        "row",
 
-  summary: {
-    margin: 12,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: COLORS.white,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+      alignItems:
+        "center",
 
-  summaryLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-  },
+      borderBottomWidth:
+        1,
 
-  summaryCount: {
-    color: COLORS.maroon,
-    fontSize: 24,
-    fontWeight: "800",
-    marginTop: 3,
-  },
+      borderBottomColor:
+        COLORS.border,
+    },
 
-  scroll: {
-    flex: 1,
-  },
+    backButton: {
+      width: 42,
 
-  scrollContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 18,
-  },
+      height: 42,
 
-  floorSection: {
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+      borderRadius: 21,
 
-  floorTitle: {
-    color: COLORS.maroon,
-    fontSize: 15,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 14,
-  },
+      backgroundColor:
+        COLORS.maroon,
 
-  roomsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: 10,
-  },
+      alignItems:
+        "center",
 
-  roomCard: {
-    width: "31%",
-    minHeight: 112,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 6,
-    padding: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
+      justifyContent:
+        "center",
 
-  roomCardWithReports: {
-    borderColor: COLORS.maroon,
-    backgroundColor: "#FFF5F5",
-  },
+      marginRight: 12,
+    },
 
-  roomCardPressed: {
-    opacity: 0.75,
-  },
+    backText: {
+      color:
+        COLORS.white,
 
-  roomName: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 8,
-  },
+      fontSize: 30,
 
-  countBadge: {
-    minWidth: 28,
-    height: 28,
-    paddingHorizontal: 7,
-    borderRadius: 14,
-    backgroundColor: "#EEEEEE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+      lineHeight: 32,
 
-  countBadgeActive: {
-    backgroundColor: COLORS.maroon,
-  },
+      marginTop: -3,
+    },
 
-  countText: {
-    color: "#333333",
-    fontSize: 13,
-    fontWeight: "800",
-  },
+    headerText: {
+      flex: 1,
+    },
 
-  countTextActive: {
-    color: "#FFFFFF",
-  },
+    title: {
+      color:
+        COLORS.maroon,
 
-  reportLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    marginTop: 4,
-  },
+      fontSize: 20,
 
-  tapHint: {
-    color: COLORS.maroon,
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 5,
-  },
+      fontWeight:
+        "800",
+    },
 
-  footer: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
+    subtitle: {
+      color:
+        COLORS.textSecondary,
 
-  footerText: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    textAlign: "center",
-  },
+      fontSize: 11,
 
-  errorBanner: {
-    marginHorizontal: 12,
-    marginBottom: 10,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#FFF0F0",
-  },
+      marginTop: 2,
+    },
 
-  errorText: {
-    color: "#A00000",
-    fontSize: 12,
-  },
+    refreshButton: {
+      paddingHorizontal: 12,
 
-  retryText: {
-    color: COLORS.maroon,
-    fontSize: 12,
-    fontWeight: "800",
-    marginTop: 6,
-  },
+      paddingVertical: 9,
 
-  centerMessage: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-});
+      borderRadius: 8,
+
+      backgroundColor:
+        COLORS.lighterMaroon,
+
+      marginLeft: 8,
+    },
+
+    refreshButtonDisabled: {
+      opacity: 0.6,
+    },
+
+    refreshText: {
+      color:
+        COLORS.maroon,
+
+      fontSize: 12,
+
+      fontWeight:
+        "700",
+    },
+
+    /* =====================================================
+     * SUMMARY
+     * =================================================== */
+
+    summary: {
+      margin: 12,
+
+      padding: 14,
+
+      borderRadius: 10,
+
+      backgroundColor:
+        COLORS.white,
+
+      flexDirection:
+        "row",
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "space-between",
+    },
+
+    summaryLabel: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 12,
+    },
+
+    summaryCount: {
+      color:
+        COLORS.maroon,
+
+      fontSize: 24,
+
+      fontWeight:
+        "800",
+
+      marginTop: 3,
+    },
+
+    summarySubtext: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 10,
+
+      marginTop: 2,
+    },
+
+    /* =====================================================
+     * MAP
+     * =================================================== */
+
+    mapScroll: {
+      flex: 1,
+    },
+
+    mapScrollContent: {
+      paddingBottom: 18,
+    },
+
+    mapCard: {
+      backgroundColor:
+        COLORS.white,
+
+      overflow:
+        "hidden",
+
+      minHeight: 500,
+    },
+
+    /* =====================================================
+     * FOOTER
+     * =================================================== */
+
+    footer: {
+      paddingVertical: 10,
+
+      paddingHorizontal: 16,
+
+      backgroundColor:
+        COLORS.white,
+
+      borderTopWidth:
+        1,
+
+      borderTopColor:
+        COLORS.border,
+    },
+
+    footerText: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 10,
+
+      textAlign:
+        "center",
+    },
+
+    footerSubtext: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 10,
+
+      textAlign:
+        "center",
+
+      marginTop: 3,
+    },
+
+    /* =====================================================
+     * ERROR
+     * =================================================== */
+
+    errorBanner: {
+      marginHorizontal: 12,
+
+      marginBottom: 10,
+
+      padding: 12,
+
+      borderRadius: 8,
+
+      backgroundColor:
+        "#FFF0F0",
+    },
+
+    errorText: {
+      color:
+        "#A00000",
+
+      fontSize: 12,
+    },
+
+    retryText: {
+      color:
+        COLORS.maroon,
+
+      fontSize: 12,
+
+      fontWeight:
+        "800",
+
+      marginTop: 6,
+    },
+
+    errorContainer: {
+      flex: 1,
+
+      alignItems:
+        "center",
+
+      justifyContent:
+        "center",
+
+      backgroundColor:
+        COLORS.lighterMaroon,
+
+      padding: 30,
+    },
+
+    errorTitle: {
+      color:
+        COLORS.maroon,
+
+      fontSize: 20,
+
+      fontWeight:
+        "800",
+
+      marginBottom: 8,
+
+      textAlign:
+        "center",
+    },
+
+    errorMessage: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 13,
+
+      textAlign:
+        "center",
+
+      marginBottom: 24,
+    },
+
+    errorButton: {
+      backgroundColor:
+        COLORS.maroon,
+
+      paddingHorizontal: 24,
+
+      paddingVertical: 12,
+
+      borderRadius: 10,
+    },
+
+    errorButtonText: {
+      color:
+        COLORS.white,
+
+      fontWeight:
+        "700",
+
+      fontSize: 14,
+    },
+  });

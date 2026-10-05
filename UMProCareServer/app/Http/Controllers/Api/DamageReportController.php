@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\DamageReport;
-use App\Support\PushNotifier;
+use App\Notifications\NewDamageReportNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,6 +57,7 @@ class DamageReportController extends Controller
             ]);
         }
 
+        // Create the damage report.
         $report = DamageReport::create([
             'report_number' => 'RPT-' . now()->format('Ymd') . '-'
                 . Str::upper(Str::random(6)),
@@ -71,6 +72,7 @@ class DamageReportController extends Controller
             'reported_at' => now(),
         ]);
 
+        // Save uploaded photos.
         foreach ($request->file('photos', []) as $photo) {
             $path = $photo->store('damage-reports', 'public');
 
@@ -79,16 +81,11 @@ class DamageReportController extends Controller
             ]);
         }
 
-        PushNotifier::notifyAdmins(
-            'New damage report',
-            sprintf(
-                '%s reported an issue at %s - %s.',
-                $request->user()->name,
-                $validated['building_name'],
-                $validated['room_name']
-            ),
-            $report
-        );
+        // Load the user relationship for the notification.
+        $report->load('user');
+
+        // Notify all admins about the new damage report.
+        (new NewDamageReportNotification($report))->send();
 
         return response()->json([
             'message' => 'Report submitted successfully.',

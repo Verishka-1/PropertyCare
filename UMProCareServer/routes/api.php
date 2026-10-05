@@ -53,7 +53,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
-});
+ // User profile
+    Route::get('/user/profile', [ProfileController::class, 'show']);
+    Route::patch('/user/profile', [ProfileController::class, 'update']);
+
+    // Expo push notifications
+    Route::post('/user/push-token', [ProfileController::class, 'updatePushToken']);
+
+
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -65,19 +73,35 @@ Route::middleware(['auth:sanctum', 'active', 'admin'])
     ->prefix('admin')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
-        Route::get('/campus-counts', [AdminDashboardController::class, 'campusCounts']);
+
+        // Campus map
+        Route::get(
+            '/campus-counts',
+            [AdminMapController::class, 'campusCounts']
+        );
 
         Route::get('/map/counts', [AdminMapController::class, 'counts']);
-        Route::get('/map/room-reports', [AdminMapController::class, 'roomReports']);
-        Route::get('/building-map/counts', [AdminMapController::class, 'buildingCounts']);
 
+        Route::get(
+            '/map/room-reports',
+            [AdminMapController::class, 'roomReports']
+        );
+
+        Route::get(
+            '/building-map/counts',
+            [AdminMapController::class, 'buildingCounts']
+        );
+
+        // Reports
         Route::get('/reports', [AdminReportController::class, 'index']);
         Route::get('/reports/{report}', [AdminReportController::class, 'show']);
         Route::patch('/reports/{report}', [AdminReportController::class, 'update']);
 
+        // Users
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::patch('/users/{user}/ban', [AdminUserController::class, 'toggleBan']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
 
+        // Complaints
         Route::get('/complaints', [ComplaintController::class, 'index']);
     });

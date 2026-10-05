@@ -1,10 +1,23 @@
 import React, { useState } from "react";
-import { Alert, ActivityIndicator, Text, View } from "react-native";
+import {
+  Alert,
+  ActivityIndicator,
+  Text,
+  View,
+} from "react-native";
 import { router } from "expo-router";
 
 import { C } from "../constants/palette";
-import { Page, Header, Card, Field, Button } from "../components/Kit";
+import {
+  Page,
+  Header,
+  Card,
+  Field,
+  Button,
+} from "../components/Kit";
+
 import { login } from "../services/api";
+import { registerForPushNotifications } from "../services/notifications";
 
 export default function Login() {
   const [who, setWho] = useState("");
@@ -25,19 +38,49 @@ export default function Login() {
     try {
       setLoading(true);
 
-      // Calls your Laravel API and saves the authentication token.
+      /*
+       * Login to Laravel.
+       *
+       * Your login() function saves the authentication
+       * token before returning the user.
+       */
       const user = await login(identifier, pass);
 
+      /*
+       * Register this device for push notifications.
+       *
+       * This MUST happen after login because the
+       * /user/push-token endpoint requires authentication.
+       *
+       * Push registration is intentionally wrapped in its
+       * own try/catch so a notification problem does not
+       * prevent the user from logging in.
+       */
+      try {
+        await registerForPushNotifications();
+      } catch (notificationError) {
+        console.warn(
+          "Push notification registration failed:",
+          notificationError
+        );
+      }
+
+      /*
+       * Send the user to the correct dashboard.
+       */
       if (user?.role === "admin") {
-  router.replace("/admin/admin-dashboard" as any);
-} else if (user?.role === "student" || user?.role === "teacher") {
-  router.replace("/user/user-dashboard" as any);
-} else {
-  Alert.alert(
-    "Account role not recognized",
-    "Your account was signed in, but it does not have a supported app destination. Please contact the administrator."
-  );
-}
+        router.replace("/admin/admin-dashboard" as any);
+      } else if (
+        user?.role === "student" ||
+        user?.role === "teacher"
+      ) {
+        router.replace("/user/user-dashboard" as any);
+      } else {
+        Alert.alert(
+          "Account role not recognized",
+          "Your account was signed in, but it does not have a supported app destination. Please contact the administrator."
+        );
+      }
     } catch (error) {
       const message =
         error instanceof Error
@@ -52,6 +95,7 @@ export default function Login() {
 
   return (
     <Page>
+      {/* University branding */}
       <View
         style={{
           alignItems: "center",
@@ -111,8 +155,12 @@ export default function Login() {
         </Text>
       </View>
 
+      {/* Login card */}
       <Card>
-        <Header title="Welcome back" sub="Sign in to continue." />
+        <Header
+          title="Welcome back"
+          sub="Sign in to continue."
+        />
 
         <Field
           label="Email or username"
@@ -131,27 +179,52 @@ export default function Login() {
         />
 
         {loading ? (
-          <View style={{ paddingVertical: 12, alignItems: "center" }}>
+          <View
+            style={{
+              paddingVertical: 12,
+              alignItems: "center",
+            }}
+          >
             <ActivityIndicator color={C.maroon} />
-            <Text style={{ color: C.muted, marginTop: 8 }}>
+
+            <Text
+              style={{
+                color: C.muted,
+                marginTop: 8,
+              }}
+            >
               Signing in...
             </Text>
           </View>
         ) : (
-          <Button title="Sign in" onPress={handleLogin} />
+          <Button
+            title="Sign in"
+            onPress={handleLogin}
+          />
         )}
 
-        <Text style={{ textAlign: "center", color: C.muted }}>
+        <Text
+          style={{
+            textAlign: "center",
+            color: C.muted,
+          }}
+        >
           New user?{" "}
           <Text
-            onPress={() => router.push("/register" as any)}
-            style={{ color: C.maroon, fontWeight: "800" }}
+            onPress={() =>
+              router.push("/register" as any)
+            }
+            style={{
+              color: C.maroon,
+              fontWeight: "800",
+            }}
           >
             Create account
           </Text>
         </Text>
       </Card>
 
+      {/* Footer */}
       <Text
         style={{
           textAlign: "center",
@@ -159,7 +232,7 @@ export default function Login() {
           color: C.muted,
         }}
       >
-      University of Mindanao Visayan Campus Edition
+        University of Mindanao Visayan Campus Edition
       </Text>
     </Page>
   );

@@ -23,6 +23,10 @@ class ComplaintController extends Controller
         'status' => 'open',
     ]);
 
+    (new \App\Notifications\NewComplaintNotification(
+    $complaint
+))->send();
+
     return response()->json([
         'message' => 'Feedback submitted successfully.',
         'data' => $complaint,

@@ -11,7 +11,11 @@ import { router, useFocusEffect } from "expo-router";
 
 import { C } from "../../constants/palette";
 import { Page, Card, Field, Button } from "../../components/Kit";
-import { getMyProfile, logout, updateMyProfile } from "../../services/api";
+import {
+  getMyProfile,
+  logout,
+  updateMyProfile,
+} from "../../services/api";
 
 type Profile = {
   id: number;
@@ -21,46 +25,29 @@ type Profile = {
   username: string;
 };
 
-function SettingsHeader() {
-  return (
-    <View style={styles.header}>
-      <Pressable
-        onPress={() => router.back()}
-        style={({ pressed }) => [
-          styles.backButton,
-          pressed && styles.backButtonPressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        hitSlop={8}
-      >
-        <Text style={styles.backButtonText}>‹</Text>
-      </Pressable>
-
-      <View style={styles.headerText}>
-        <Text style={styles.headerTitle}>Profile & settings</Text>
-        <Text style={styles.headerSubtitle}>Manage your account</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function UserSettings() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [profile, setProfile] = useState<Profile | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
+  /**
+   * Load profile from Laravel
+   */
   const loadProfile = useCallback(async () => {
     try {
+      setLoading(true);
+
       const data = await getMyProfile();
 
       setProfile(data);
+
       setFirstName(data?.first_name ?? "");
       setLastName(data?.last_name ?? "");
       setEmail(data?.email ?? "");
@@ -68,30 +55,105 @@ export default function UserSettings() {
     } catch (error: any) {
       Alert.alert(
         "Could not load profile",
-        error?.message || "Please try again."
+        error?.message || "Unable to load your account information."
       );
     } finally {
       setLoading(false);
     }
   }, []);
 
+  /**
+   * Reload profile whenever this screen gets focus
+   */
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
       loadProfile();
     }, [loadProfile])
   );
 
+  /**
+   * Check whether the user changed anything
+   */
+  const hasChanges = () => {
+    if (!profile) return false;
+
+    return (
+      firstName.trim() !== (profile.first_name ?? "") ||
+      lastName.trim() !== (profile.last_name ?? "") ||
+      email.trim() !== (profile.email ?? "") ||
+      username.trim() !== (profile.username ?? "")
+    );
+  };
+
+  /**
+   * Reset fields to the values from the server
+   */
+  const handleCancel = () => {
+    if (!profile) return;
+
+    setFirstName(profile.first_name ?? "");
+    setLastName(profile.last_name ?? "");
+    setEmail(profile.email ?? "");
+    setUsername(profile.username ?? "");
+  };
+
+  /**
+   * Save profile
+   */
   const handleSave = async () => {
+    if (saving) return;
+
     const cleanFirstName = firstName.trim();
     const cleanLastName = lastName.trim();
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = username.trim();
 
-    if (!cleanFirstName || !cleanLastName || !cleanEmail || !cleanUsername) {
+    // Required fields
+    if (!cleanFirstName) {
+      Alert.alert("Missing information", "Please enter your first name.");
+      return;
+    }
+
+    if (!cleanLastName) {
+      Alert.alert("Missing information", "Please enter your last name.");
+      return;
+    }
+
+    if (!cleanUsername) {
+      Alert.alert("Missing information", "Please enter your username.");
+      return;
+    }
+
+    if (!cleanEmail) {
+      Alert.alert("Missing information", "Please enter your email.");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(cleanEmail)) {
       Alert.alert(
-        "Missing information",
-        "Please fill in your first name, last name, username, and email."
+        "Invalid email",
+        "Please enter a valid email address."
+      );
+      return;
+    }
+
+    // Username validation
+    if (cleanUsername.length < 3) {
+      Alert.alert(
+        "Invalid username",
+        "Username must contain at least 3 characters."
+      );
+      return;
+    }
+
+    // Nothing changed
+    if (!hasChanges()) {
+      Alert.alert(
+        "No changes",
+        "There are no changes to save."
       );
       return;
     }
@@ -106,13 +168,28 @@ export default function UserSettings() {
         username: cleanUsername,
       });
 
-      setProfile(updated);
-      setFirstName(updated?.first_name ?? cleanFirstName);
-      setLastName(updated?.last_name ?? cleanLastName);
-      setEmail(updated?.email ?? cleanEmail);
-      setUsername(updated?.username ?? cleanUsername);
+      /**
+       * Update local profile using server response
+       */
+      const newProfile: Profile = {
+        id: updated?.id ?? profile?.id ?? 0,
+        first_name: updated?.first_name ?? cleanFirstName,
+        last_name: updated?.last_name ?? cleanLastName,
+        email: updated?.email ?? cleanEmail,
+        username: updated?.username ?? cleanUsername,
+      };
 
-      Alert.alert("Profile updated", "Your account details have been saved.");
+      setProfile(newProfile);
+
+      setFirstName(newProfile.first_name);
+      setLastName(newProfile.last_name);
+      setEmail(newProfile.email);
+      setUsername(newProfile.username);
+
+      Alert.alert(
+        "Profile updated",
+        "Your account details have been saved successfully."
+      );
     } catch (error: any) {
       Alert.alert(
         "Save failed",
@@ -123,92 +200,183 @@ export default function UserSettings() {
     }
   };
 
+  /**
+   * Logout
+   */
   const handleLogout = async () => {
     if (loggingOut) return;
 
     setLoggingOut(true);
+
     try {
       await logout();
+
       router.replace("/login" as any);
     } catch (error: any) {
       Alert.alert(
         "Logout failed",
-        error?.message || "Please try again."
+        error?.message || "Could not log out. Please try again."
       );
     } finally {
       setLoggingOut(false);
     }
   };
 
+  /**
+   * Back button
+   */
+  const handleBack = () => {
+    if (saving || loggingOut) return;
+
+    router.back();
+  };
+
   return (
     <Page>
-      <SettingsHeader />
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={handleBack}
+          disabled={saving || loggingOut}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+            (saving || loggingOut) && styles.disabled,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={8}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </Pressable>
 
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>
+            Profile & settings
+          </Text>
+
+          <Text style={styles.headerSubtitle}>
+            Manage your account
+          </Text>
+        </View>
+      </View>
+
+      {/* PROFILE CARD */}
       <Card>
-        <Text style={{ color: C.ink, fontWeight: "800" }}>
-          Profile details
-        </Text>
+        <View style={styles.cardHeader}>
+          <View style={styles.profileIcon}>
+            <Text style={styles.profileIconText}>
+              {firstName?.charAt(0)?.toUpperCase() || "U"}
+            </Text>
+          </View>
+
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.cardTitle}>
+              Profile details
+            </Text>
+
+            <Text style={styles.cardSubtitle}>
+              Update your personal information
+            </Text>
+          </View>
+        </View>
 
         {loading ? (
-          <View style={{ paddingVertical: 24, alignItems: "center" }}>
-            <ActivityIndicator color={C.ink} />
-            <Text style={{ color: C.muted, marginTop: 8 }}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="small"
+              color={C.maroon}
+            />
+
+            <Text style={styles.loadingText}>
               Loading profile...
             </Text>
           </View>
         ) : (
           <>
+            {/* FIRST NAME */}
             <Field
               label="First name"
               value={firstName}
               onChangeText={setFirstName}
+              editable={!saving}
             />
 
+            {/* LAST NAME */}
             <Field
               label="Last name"
               value={lastName}
               onChangeText={setLastName}
+              editable={!saving}
             />
 
+            {/* USERNAME */}
             <Field
               label="Username"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
+              editable={!saving}
             />
 
+            {/* EMAIL */}
             <Field
               label="Email"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!saving}
             />
 
-            <Text style={{ color: C.muted, fontSize: 11 }}>
-              Account ID is system-managed and cannot be edited.
-              {profile?.id ? ` Account ID: ${profile.id}` : ""}
-            </Text>
+            {/* ACCOUNT ID */}
+            <View style={styles.accountInfo}>
+              <Text style={styles.accountLabel}>
+                Account ID
+              </Text>
 
-            <View style={{ marginTop: 16 }}>
+              <Text style={styles.accountValue}>
+                {profile?.id ?? "—"}
+              </Text>
+
+              <Text style={styles.accountDescription}>
+                This ID is managed by the system and cannot be edited.
+              </Text>
+            </View>
+
+            {/* SAVE / CANCEL */}
+            <View style={styles.buttonGroup}>
               <Button
                 title={saving ? "Saving..." : "Save changes"}
-                onPress={() => {
-                  if (!saving) handleSave();
-                }}
+                onPress={handleSave}
               />
+
+              {hasChanges() && !saving && (
+                <Pressable
+                  onPress={handleCancel}
+                  style={({ pressed }) => [
+                    styles.cancelButton,
+                    pressed && styles.cancelButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.cancelText}>
+                    Cancel changes
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </>
         )}
       </Card>
 
-      <Button
-        title={loggingOut ? "Logging out..." : "Log out"}
-        outline
-        onPress={() => {
-          if (!loggingOut) handleLogout();
-        }}
-      />
+      {/* LOGOUT */}
+      <View style={styles.logoutContainer}>
+        <Button
+          title={loggingOut ? "Logging out..." : "Log out"}
+          outline
+          onPress={handleLogout}
+        />
+      </View>
     </Page>
   );
 }
@@ -218,20 +386,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 30,
-    marginBottom: 16,
+    marginBottom: 18,
   },
+
   backButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: C.maroon,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
+
   backButtonPressed: {
     opacity: 0.8,
   },
+
   backButtonText: {
     color: "#FFFFFF",
     fontSize: 38,
@@ -239,17 +410,127 @@ const styles = StyleSheet.create({
     marginTop: -4,
     fontWeight: "400",
   },
+
   headerText: {
     flex: 1,
   },
+
   headerTitle: {
     color: C.ink,
     fontSize: 24,
     fontWeight: "700",
   },
+
   headerSubtitle: {
     color: C.muted,
     fontSize: 14,
     marginTop: 3,
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  profileIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: C.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  profileIconText: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  cardHeaderText: {
+    flex: 1,
+  },
+
+  cardTitle: {
+    color: C.ink,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+
+  cardSubtitle: {
+    color: C.muted,
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  loadingContainer: {
+    paddingVertical: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loadingText: {
+    color: C.muted,
+    marginTop: 9,
+    fontSize: 13,
+  },
+
+  accountInfo: {
+    marginTop: 12,
+    padding: 13,
+    borderRadius: 10,
+    backgroundColor: "#F7F7F7",
+  },
+
+  accountLabel: {
+    color: C.muted,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+
+  accountValue: {
+    color: C.ink,
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+
+  accountDescription: {
+    color: C.muted,
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  buttonGroup: {
+    marginTop: 18,
+  },
+
+  cancelButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    marginTop: 8,
+  },
+
+  cancelButtonPressed: {
+    opacity: 0.6,
+  },
+
+  cancelText: {
+    color: C.maroon,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  logoutContainer: {
+    marginTop: 14,
+    marginBottom: 20,
+  },
+
+  disabled: {
+    opacity: 0.5,
   },
 });

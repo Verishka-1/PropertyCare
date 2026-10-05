@@ -1,234 +1,1063 @@
-import React, { useCallback, useState } from "react";
+import React, {
+  useCallback,
+  useState,
+} from "react";
+
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
+
+import { COLORS, Spacing } from "../../constants/theme";
 import { apiRequest } from "../../services/api";
 
 type Report = {
   id: number;
   report_number?: string | null;
-  title?: string | null;
-  description: string;
+
+  property_name?: string | null;
+  description?: string | null;
+
   building_name?: string | null;
   room_name?: string | null;
-  status: string;
+
+  status?: string | null;
   priority?: string | null;
-  created_at: string;
-  user?: {
-    name?: string | null;
-    email?: string | null;
-  } | null;
+
+  reported_at?: string | null;
+  created_at?: string | null;
 };
 
+type RoomReportsResponse = {
+  data?: Report[];
+  message?: string;
+};
+
+function formatStatus(status?: string | null) {
+  if (!status) {
+    return "Pending";
+  }
+
+  return status
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
+}
+
+function formatPriority(
+  priority?: string | null
+) {
+  if (!priority) {
+    return "Normal";
+  }
+
+  return priority
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
+}
+
+function formatDate(
+  value?: string | null
+) {
+  if (!value) {
+    return "No date";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
+}
+
 export default function AdminRoomReportsScreen() {
-  const params = useLocalSearchParams<{
-    building?: string;
-    room?: string;
-    location?: string;
-  }>();
+  const {
+    building,
+    buildingName,
+    room,
+    location,
+  } =
+    useLocalSearchParams<{
+      building?: string;
+      buildingName?: string;
+      room?: string;
+      location?: string;
+    }>();
 
-  const building = Array.isArray(params.building)
-    ? params.building[0]
-    : params.building;
+  const selectedBuilding =
+    Array.isArray(building)
+      ? building[0]
+      : building;
 
-  const room = Array.isArray(params.room)
-    ? params.room[0]
-    : params.room;
+  const selectedBuildingName =
+    Array.isArray(buildingName)
+      ? buildingName[0]
+      : buildingName;
 
-  const location = Array.isArray(params.location)
-    ? params.location[0]
-    : params.location;
+  const selectedRoom =
+    Array.isArray(room)
+      ? room[0]
+      : room;
 
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const selectedLocation =
+    Array.isArray(location)
+      ? location[0]
+      : location;
 
-  const heading = room || location || building || "Location reports";
+  /*
+   * Prefer the room parameter.
+   * Fall back to location for compatibility.
+   */
+  const roomName =
+    selectedRoom ||
+    selectedLocation ||
+    "";
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+  const [
+    reports,
+    setReports,
+  ] = useState<Report[]>([]);
 
-      const loadReports = async () => {
-        setLoading(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    refreshing,
+    setRefreshing,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  /*
+   * Load REAL reports from Laravel.
+   */
+  const loadReports =
+    useCallback(async () => {
+      if (!selectedBuilding) {
+        setError(
+          "Building information is missing."
+        );
+
+        setLoading(false);
+        setRefreshing(false);
+
+        return;
+      }
+
+      if (!roomName) {
+        setError(
+          "Room information is missing."
+        );
+
+        setLoading(false);
+        setRefreshing(false);
+
+        return;
+      }
+
+      try {
         setError("");
 
-        try {
-          const query = new URLSearchParams();
-
-          if (building) query.set("building", building);
-          if (room) query.set("room", room);
-          if (!building && !room && location) {
-            query.set("location", location);
-          }
-
-          const suffix = query.toString();
-          const response = await apiRequest(
-            `/admin/map/room-reports${suffix ? `?${suffix}` : ""}`
+        const queryBuilding =
+          encodeURIComponent(
+            selectedBuilding
           );
 
-          if (active) {
-            setReports(response.data ?? []);
-          }
-        } catch (e) {
-          if (active) {
-            setError("Could not load reports. Please check your connection.");
-          }
-        } finally {
-          if (active) setLoading(false);
-        }
-      };
+        const queryRoom =
+          encodeURIComponent(
+            roomName
+          );
+
+        /*
+         * Laravel endpoint:
+         *
+         * GET /api/admin/map/room-reports
+         *
+         * Example:
+         *
+         * /api/admin/map/room-reports
+         *   ?building=building2
+         *   &room=B2%20213
+         */
+        const response =
+          (await apiRequest(
+            `/admin/map/room-reports?building=${queryBuilding}&room=${queryRoom}`
+          )) as RoomReportsResponse;
+
+        console.log(
+          "REAL ROOM REPORTS:",
+          response
+        );
+
+        setReports(
+          Array.isArray(
+            response?.data
+          )
+            ? response.data
+            : []
+        );
+      } catch (err) {
+        console.error(
+          "Failed to load room reports:",
+          err
+        );
+
+        setReports([]);
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load reports. Please try again."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }, [
+      selectedBuilding,
+      roomName,
+    ]);
+
+  /*
+   * Reload every time the screen
+   * becomes active.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
 
       loadReports();
-
-      return () => {
-        active = false;
-      };
-    }, [building, room, location])
+    }, [loadReports])
   );
 
+  /*
+   * Pull-to-refresh.
+   */
+  const handleRefresh =
+    () => {
+      setRefreshing(true);
+
+      loadReports();
+    };
+
+  /*
+   * Back to building map.
+   */
+  const handleBack =
+    () => {
+      router.back();
+    };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>‹</Text>
+    <View
+      style={styles.container}
+    >
+      {/* HEADER */}
+
+      <View
+        style={styles.header}
+      >
+        <Pressable
+  onPress={() => router.back()}
+  style={styles.backButton}
+  hitSlop={8}
+  accessibilityRole="button"
+  accessibilityLabel="Go back to Building Map"
+>
+  <Text style={styles.backText}>
+    ‹
+  </Text>
+</Pressable>
+
+        <View
+          style={
+            styles.headerText
+          }
+        >
+          <Text
+            style={styles.title}
+          >
+            Room Reports
+          </Text>
+
+          <Text
+            style={
+              styles.subtitle
+            }
+          >
+            {selectedBuildingName ||
+              "Building"}
+            {" • "}
+            {roomName ||
+              "Room"}
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={
+            handleRefresh
+          }
+          disabled={loading}
+          style={[
+            styles.refreshButton,
+            loading &&
+              styles.refreshButtonDisabled,
+          ]}
+        >
+          <Text
+            style={
+              styles.refreshText
+            }
+          >
+            {loading
+              ? "Loading..."
+              : "Refresh"}
+          </Text>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Damage Reports</Text>
-          <Text style={styles.subtitle}>{heading}</Text>
+      </View>
+
+      {/* ROOM SUMMARY */}
+
+      <View
+        style={styles.summary}
+      >
+        <View
+          style={
+            styles.summaryText
+          }
+        >
+          <Text
+            style={
+              styles.summaryLabel
+            }
+          >
+            Reports in this room
+          </Text>
+
+          <Text
+            style={
+              styles.roomTitle
+            }
+          >
+            {roomName ||
+              "Unknown room"}
+          </Text>
+        </View>
+
+        <View
+          style={
+            styles.summaryBadge
+          }
+        >
+          <Text
+            style={
+              styles.summaryBadgeText
+            }
+          >
+            {loading
+              ? "…"
+              : reports.length}
+          </Text>
         </View>
       </View>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 30 }} size="large" />
-      ) : error ? (
-        <Text style={styles.message}>{error}</Text>
-      ) : reports.length === 0 ? (
-        <Text style={styles.message}>No reports submitted for this location yet.</Text>
-      ) : (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={reports}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.reportTitle}>
-                {item.report_number || `Report #${item.id}`}
-              </Text>
+      {/* ERROR */}
 
-              <Text style={styles.detail}>
-                Reporter: {item.user?.name || "Unknown user"}
-              </Text>
-              {!!item.user?.email && (
-                <Text style={styles.detail}>Email: {item.user.email}</Text>
-              )}
+      {error ? (
+        <View
+          style={
+            styles.errorBanner
+          }
+        >
+          <Text
+            style={
+              styles.errorText
+            }
+          >
+            {error}
+          </Text>
 
-              <Text style={styles.detail}>
-                Building: {item.building_name || "Not specified"}
-              </Text>
-              <Text style={styles.detail}>
-                Room/location: {item.room_name || "Not specified"}
-              </Text>
+          <Pressable
+            onPress={
+              handleRefresh
+            }
+            disabled={loading}
+          >
+            <Text
+              style={
+                styles.retryText
+              }
+            >
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
-              {!!item.title && (
-                <Text style={styles.detail}>Issue: {item.title}</Text>
-              )}
-              <Text style={styles.description}>{item.description}</Text>
-              <Text style={styles.detail}>
-                Status: {item.status} · Priority: {item.priority || "—"}
-              </Text>
-              <Text style={styles.date}>
-                Submitted: {new Date(item.created_at).toLocaleString()}
+      {/* REPORT LIST */}
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          reports.length === 0 &&
+          !loading
+            ? styles.emptyScrollContent
+            : styles.scrollContent
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={
+              refreshing
+            }
+            onRefresh={
+              handleRefresh
+            }
+          />
+        }
+      >
+        {loading ? (
+          <View
+            style={
+              styles.loadingContainer
+            }
+          >
+            <ActivityIndicator
+              size="large"
+              color={
+                COLORS.maroon
+              }
+            />
+
+            <Text
+              style={
+                styles.loadingText
+              }
+            >
+              Loading reports...
+            </Text>
+          </View>
+        ) : reports.length ===
+          0 ? (
+          <View
+            style={
+              styles.emptyContainer
+            }
+          >
+            <View
+              style={
+                styles.emptyIcon
+              }
+            >
+              <Text
+                style={
+                  styles.emptyIconText
+                }
+              >
+                ✓
               </Text>
             </View>
-          )}
-        />
-      )}
+
+            <Text
+              style={
+                styles.emptyTitle
+              }
+            >
+              No reports
+            </Text>
+
+            <Text
+              style={
+                styles.emptyText
+              }
+            >
+              There are currently no saved
+              damage reports for this room.
+            </Text>
+          </View>
+        ) : (
+          reports.map(
+            (report) => (
+              <View
+                key={report.id}
+                style={
+                  styles.reportCard
+                }
+              >
+                {/* REPORT HEADER */}
+
+                <View
+                  style={
+                    styles.reportHeader
+                  }
+                >
+                  <View
+                    style={
+                      styles.reportHeaderText
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.reportNumber
+                      }
+                    >
+                      {report.report_number ||
+                        `Report #${report.id}`}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.propertyName
+                      }
+                    >
+                      {report.property_name ||
+                        "Unspecified property"}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      report.status
+                        ?.toLowerCase() ===
+                        "completed" &&
+                        styles.statusCompleted,
+                      report.status
+                        ?.toLowerCase() ===
+                        "repaired" &&
+                        styles.statusCompleted,
+                      report.status
+                        ?.toLowerCase() ===
+                        "rejected" &&
+                        styles.statusRejected,
+                      report.status
+                        ?.toLowerCase() ===
+                        "verified" &&
+                        styles.statusVerified,
+                    ]}
+                  >
+                    <Text
+                      style={
+                        styles.statusText
+                      }
+                    >
+                      {formatStatus(
+                        report.status
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* DESCRIPTION */}
+
+                <View
+                  style={
+                    styles.infoBlock
+                  }
+                >
+                  <Text
+                    style={
+                      styles.infoLabel
+                    }
+                  >
+                    Description
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.description
+                    }
+                  >
+                    {report.description ||
+                      "No description provided."}
+                  </Text>
+                </View>
+
+                {/* DETAILS */}
+
+                <View
+                  style={
+                    styles.detailsGrid
+                  }
+                >
+                  <View
+                    style={
+                      styles.detailItem
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Building
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {report.building_name ||
+                        selectedBuildingName ||
+                        "—"}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.detailItem
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Room
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {report.room_name ||
+                        roomName ||
+                        "—"}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.detailItem
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Priority
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {formatPriority(
+                        report.priority
+                      )}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.detailItem
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Reported
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.detailValue
+                      }
+                    >
+                      {formatDate(
+                        report.reported_at ||
+                          report.created_at
+                      )}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )
+          )
+        )}
+      </ScrollView>
+
+      {/* FOOTER */}
+
+      <View
+        style={styles.footer}
+      >
+        <Text
+          style={
+            styles.footerText
+          }
+        >
+          Showing saved reports from the
+          database.
+        </Text>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F7F2F3",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 48,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8DDE0",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#800020",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  backText: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    lineHeight: 32,
-    marginTop: -3,
-  },
-  title: {
-    color: "#800020",
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  subtitle: {
-    color: "#666666",
-    fontSize: 13,
-    marginTop: 3,
-  },
-  list: {
-    padding: 14,
-    gap: 12,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#E8DDE0",
-  },
-  reportTitle: {
-    color: "#800020",
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  detail: {
-    color: "#444444",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  description: {
-    color: "#222222",
-    fontSize: 14,
-    marginTop: 10,
-  },
-  date: {
-    color: "#777777",
-    fontSize: 12,
-    marginTop: 10,
-  },
-  message: {
-    padding: 20,
-    color: "#555555",
-    textAlign: "center",
-  },
-});
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor:
+        COLORS.lighterMaroon,
+    },
+
+    header: {
+      backgroundColor:
+        COLORS.white,
+      paddingHorizontal:
+        Spacing.lg,
+      paddingTop: 50,
+      paddingBottom:
+        Spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      borderBottomWidth: 1,
+      borderBottomColor:
+        COLORS.border,
+    },
+
+    backButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor:
+        COLORS.maroon,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginRight: 12,
+    },
+
+    backText: {
+      color: COLORS.white,
+      fontSize: 30,
+      lineHeight: 32,
+      marginTop: -3,
+    },
+
+    headerText: {
+      flex: 1,
+    },
+
+    title: {
+      color: COLORS.maroon,
+      fontSize: 20,
+      fontWeight: "800",
+    },
+
+    subtitle: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 11,
+      marginTop: 3,
+    },
+
+    refreshButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 8,
+      backgroundColor:
+        COLORS.lighterMaroon,
+      marginLeft: 8,
+    },
+
+    refreshButtonDisabled: {
+      opacity: 0.6,
+    },
+
+    refreshText: {
+      color: COLORS.maroon,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+
+    summary: {
+      margin: 12,
+      padding: 14,
+      borderRadius: 10,
+      backgroundColor:
+        COLORS.white,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    summaryText: {
+      flex: 1,
+    },
+
+    summaryLabel: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 12,
+    },
+
+    roomTitle: {
+      color: COLORS.maroon,
+      fontSize: 18,
+      fontWeight: "800",
+      marginTop: 3,
+    },
+
+    summaryBadge: {
+      minWidth: 42,
+      height: 42,
+      paddingHorizontal: 10,
+      borderRadius: 21,
+      backgroundColor:
+        COLORS.maroon,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginLeft: 12,
+    },
+
+    summaryBadgeText: {
+      color: COLORS.white,
+      fontSize: 16,
+      fontWeight: "800",
+    },
+
+    scroll: {
+      flex: 1,
+    },
+
+    scrollContent: {
+      paddingHorizontal: 12,
+      paddingBottom: 20,
+    },
+
+    emptyScrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 12,
+      paddingBottom: 20,
+    },
+
+    loadingContainer: {
+      paddingTop: 60,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    loadingText: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 13,
+      marginTop: 10,
+    },
+
+    reportCard: {
+      backgroundColor:
+        COLORS.white,
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
+
+    reportHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent:
+        "space-between",
+      marginBottom: 14,
+    },
+
+    reportHeaderText: {
+      flex: 1,
+      paddingRight: 10,
+    },
+
+    reportNumber: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 11,
+      fontWeight: "700",
+    },
+
+    propertyName: {
+      color: COLORS.maroon,
+      fontSize: 17,
+      fontWeight: "800",
+      marginTop: 3,
+    },
+
+    statusBadge: {
+      backgroundColor:
+        "#FFF1D6",
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      borderRadius: 12,
+    },
+
+    statusVerified: {
+      backgroundColor:
+        "#E7F4EA",
+    },
+
+    statusCompleted: {
+      backgroundColor:
+        "#E7F4EA",
+    },
+
+    statusRejected: {
+      backgroundColor:
+        "#FFE7E7",
+    },
+
+    statusText: {
+      color: "#555555",
+      fontSize: 10,
+      fontWeight: "800",
+    },
+
+    infoBlock: {
+      marginBottom: 14,
+    },
+
+    infoLabel: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 10,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      marginBottom: 4,
+    },
+
+    description: {
+      color: COLORS.text,
+      fontSize: 13,
+      lineHeight: 19,
+    },
+
+    detailsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      borderTopWidth: 1,
+      borderTopColor:
+        COLORS.border,
+      paddingTop: 12,
+    },
+
+    detailItem: {
+      width: "50%",
+      marginBottom: 10,
+      paddingRight: 8,
+    },
+
+    detailValue: {
+      color: COLORS.text,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+
+    emptyContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      paddingHorizontal: 30,
+    },
+
+    emptyIcon: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor:
+        COLORS.white,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      marginBottom: 14,
+    },
+
+    emptyIconText: {
+      color: COLORS.maroon,
+      fontSize: 28,
+      fontWeight: "800",
+    },
+
+    emptyTitle: {
+      color: COLORS.maroon,
+      fontSize: 20,
+      fontWeight: "800",
+      marginBottom: 6,
+    },
+
+    emptyText: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 13,
+      textAlign: "center",
+      lineHeight: 19,
+    },
+
+    errorBanner: {
+      marginHorizontal: 12,
+      marginBottom: 10,
+      padding: 12,
+      borderRadius: 8,
+      backgroundColor:
+        "#FFF0F0",
+    },
+
+    errorText: {
+      color: "#A00000",
+      fontSize: 12,
+    },
+
+    retryText: {
+      color: COLORS.maroon,
+      fontSize: 12,
+      fontWeight: "800",
+      marginTop: 6,
+    },
+
+    footer: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor:
+        COLORS.white,
+      borderTopWidth: 1,
+      borderTopColor:
+        COLORS.border,
+    },
+
+    footerText: {
+      color:
+        COLORS.textSecondary,
+      fontSize: 10,
+      textAlign: "center",
+    },
+  });

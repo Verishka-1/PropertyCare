@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "UM ProCare",
+    "name": "Property Care",
     "slug": "UMProCare",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/UMProCareLogo.png",
     "scheme": "umprocare",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -34,11 +34,25 @@
         }
       ],
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+  "expo-notifications",
+  {
+    "icon": "./assets/images/UMProCareLogo.png",
+    "color": "#800020"
+  }
+]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a84b76ed-c91a-45d1-984c-6d030ac6f8fb"
+      }
+    },
+    "owner": "juizeann08"
   }
 }

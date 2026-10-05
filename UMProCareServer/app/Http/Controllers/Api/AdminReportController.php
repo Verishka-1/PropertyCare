@@ -122,5 +122,11 @@ class AdminReportController extends Controller
             'message' => 'Report status updated.',
             'data' => $report->fresh()->load('user:id,name,email'),
         ]);
+
+        $report->load('user');
+
+        (new \App\Notifications\ReportStatusNotification(
+            $report
+        ))->send();
     }
 }
