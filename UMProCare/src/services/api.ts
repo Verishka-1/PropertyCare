@@ -15,7 +15,7 @@ import * as SecureStore from "expo-secure-store";
 // TODO: point this at your machine's LAN IP while developing with Expo Go
 // (Windows: `ipconfig`, macOS/Linux: `ifconfig`) - "localhost" only works
 // from a simulator running on the same machine as the Laravel server.
-const API_URL = "http://192.168.1.9:8000/api";
+const API_URL = "http://192.168.0.103:8000/api";
 
 /**
  * Convert Laravel storage paths into URLs that the phone can actually reach.
