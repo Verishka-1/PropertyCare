@@ -19,22 +19,22 @@ import {
   useLocalSearchParams,
 } from "expo-router";
 
-import { COLORS, Spacing } from "../../constants/theme";
+import {
+  COLORS,
+  Spacing,
+} from "../../constants/theme";
+
 import { apiRequest } from "../../services/api";
 
 type Report = {
   id: number;
   report_number?: string | null;
-
   property_name?: string | null;
   description?: string | null;
-
   building_name?: string | null;
   room_name?: string | null;
-
   status?: string | null;
   priority?: string | null;
-
   reported_at?: string | null;
   created_at?: string | null;
 };
@@ -49,12 +49,16 @@ function formatStatus(status?: string | null) {
     return "Pending";
   }
 
-  // friendly names for the admin workflow
-  if (status === "verified") return "Accepted";
-  if (status === "in_progress") return "Under Repair";
+  if (status === "verified") {
+    return "Accepted";
+  }
+
+  if (status === "in_progress") {
+    return "Under Repair";
+  }
 
   return status
-    .replace(/[_-]/g, " ")
+    .replace(/[\_-]/g, " ")
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase()
     );
@@ -68,7 +72,7 @@ function formatPriority(
   }
 
   return priority
-    .replace(/[_-]/g, " ")
+    .replace(/[\_-]/g, " ")
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase()
     );
@@ -96,13 +100,12 @@ export default function AdminRoomReportsScreen() {
     buildingName,
     room,
     location,
-  } =
-    useLocalSearchParams<{
-      building?: string;
-      buildingName?: string;
-      room?: string;
-      location?: string;
-    }>();
+  } = useLocalSearchParams<{
+    building?: string;
+    buildingName?: string;
+    room?: string;
+    location?: string;
+  }>();
 
   const selectedBuilding =
     Array.isArray(building)
@@ -258,171 +261,153 @@ export default function AdminRoomReportsScreen() {
   /*
    * Pull-to-refresh.
    */
-  const handleRefresh =
-    () => {
-      setRefreshing(true);
+  const handleRefresh = () => {
+    setRefreshing(true);
 
-      loadReports();
-    };
+    loadReports();
+  };
 
   /*
    * Back to building map.
    */
-  const handleBack =
-    () => {
-      router.back();
-    };
+  const handleBack = () => {
+    router.back();
+  };
 
   return (
-    <View
-      style={styles.container}
-    >
-      {/* HEADER */}
+    <View style={styles.container}>
 
-      <View
-        style={styles.header}
-      >
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <View style={styles.header}>
+
         <Pressable
-  onPress={() => router.back()}
-  style={styles.backButton}
-  hitSlop={8}
-  accessibilityRole="button"
-  accessibilityLabel="Go back to Building Map"
->
-  <Text style={styles.backText}>
-    ‹
-  </Text>
-</Pressable>
-
-        <View
-          style={
-            styles.headerText
-          }
+          onPress={() => router.back()}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.pressed,
+          ]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to Building Map"
         >
-          <Text
-            style={styles.title}
-          >
+          <Text style={styles.backText}>
+            ‹
+          </Text>
+        </Pressable>
+
+        <View style={styles.headerText}>
+
+          <Text style={styles.title}>
             Room Reports
           </Text>
 
-          <Text
-            style={
-              styles.subtitle
-            }
-          >
+          <Text style={styles.subtitle}>
             {selectedBuildingName ||
               "Building"}
-            {" • "}
+            {" · "}
             {roomName ||
               "Room"}
           </Text>
+
         </View>
 
         <Pressable
-          onPress={
-            handleRefresh
-          }
+          onPress={handleRefresh}
           disabled={loading}
-          style={[
+          style={({ pressed }) => [
             styles.refreshButton,
+            pressed && styles.pressed,
             loading &&
               styles.refreshButtonDisabled,
           ]}
         >
-          <Text
-            style={
-              styles.refreshText
-            }
-          >
+          <Text style={styles.refreshText}>
             {loading
               ? "Loading..."
               : "Refresh"}
           </Text>
         </Pressable>
+
       </View>
 
-      {/* ROOM SUMMARY */}
+      {/* =====================================================
+          ROOM SUMMARY
+      ===================================================== */}
 
-      <View
-        style={styles.summary}
-      >
-        <View
-          style={
-            styles.summaryText
-          }
-        >
-          <Text
-            style={
-              styles.summaryLabel
-            }
-          >
-            Reports in this room
+      <View style={styles.summary}>
+
+        <View style={styles.summaryText}>
+
+          <Text style={styles.summaryLabel}>
+            REPORTS IN THIS ROOM
           </Text>
 
-          <Text
-            style={
-              styles.roomTitle
-            }
-          >
+          <Text style={styles.roomTitle}>
             {roomName ||
               "Unknown room"}
           </Text>
+
+          <Text style={styles.summarySubtext}>
+            {selectedBuildingName ||
+              "Building"}
+          </Text>
+
         </View>
 
-        <View
-          style={
-            styles.summaryBadge
-          }
-        >
-          <Text
-            style={
-              styles.summaryBadgeText
-            }
-          >
+        <View style={styles.summaryBadge}>
+
+          <Text style={styles.summaryBadgeText}>
             {loading
               ? "…"
               : reports.length}
           </Text>
+
         </View>
+
       </View>
 
-      {/* ERROR */}
+      {/* =====================================================
+          ERROR
+      ===================================================== */}
 
       {error ? (
-        <View
-          style={
-            styles.errorBanner
-          }
-        >
-          <Text
-            style={
-              styles.errorText
-            }
-          >
-            {error}
-          </Text>
+        <View style={styles.errorBanner}>
+
+          <View style={styles.errorContent}>
+
+            <Text style={styles.errorTitle}>
+              Unable to load reports
+            </Text>
+
+            <Text style={styles.errorText}>
+              {error}
+            </Text>
+
+          </View>
 
           <Pressable
-            onPress={
-              handleRefresh
-            }
+            onPress={handleRefresh}
             disabled={loading}
+            style={styles.retryButton}
           >
-            <Text
-              style={
-                styles.retryText
-              }
-            >
+            <Text style={styles.retryText}>
               Try again
             </Text>
           </Pressable>
+
         </View>
       ) : null}
 
-      {/* REPORT LIST */}
+      {/* =====================================================
+          REPORT LIST
+      ===================================================== */}
 
       <ScrollView
         style={styles.scroll}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={
           reports.length === 0 &&
           !loading
@@ -431,666 +416,783 @@ export default function AdminRoomReportsScreen() {
         }
         refreshControl={
           <RefreshControl
-            refreshing={
-              refreshing
-            }
-            onRefresh={
-              handleRefresh
-            }
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.maroon}
+            colors={[COLORS.maroon]}
           />
         }
       >
-        {loading ? (
-          <View
-            style={
-              styles.loadingContainer
-            }
-          >
-            <ActivityIndicator
-              size="large"
-              color={
-                COLORS.maroon
-              }
-            />
 
-            <Text
-              style={
-                styles.loadingText
-              }
-            >
-              Loading reports...
-            </Text>
-          </View>
-        ) : reports.length ===
-          0 ? (
-          <View
-            style={
-              styles.emptyContainer
-            }
-          >
-            <View
-              style={
-                styles.emptyIcon
-              }
-            >
-              <Text
-                style={
-                  styles.emptyIconText
-                }
-              >
-                ✓
-              </Text>
+        {loading ? (
+
+          <View style={styles.loadingContainer}>
+
+            <View style={styles.loadingCircle}>
+
+              <ActivityIndicator
+                size="small"
+                color={COLORS.maroon}
+              />
+
             </View>
 
-            <Text
-              style={
-                styles.emptyTitle
-              }
-            >
+            <Text style={styles.loadingText}>
+              Loading reports...
+            </Text>
+
+          </View>
+
+        ) : reports.length === 0 ? (
+
+          <View style={styles.emptyContainer}>
+
+            <View style={styles.emptyIcon}>
+
+              <Text style={styles.emptyIconText}>
+                ✓
+              </Text>
+
+            </View>
+
+            <Text style={styles.emptyTitle}>
               No reports
             </Text>
 
-            <Text
-              style={
-                styles.emptyText
-              }
-            >
+            <Text style={styles.emptyText}>
               There are currently no saved
               damage reports for this room.
             </Text>
+
           </View>
+
         ) : (
-          reports.map(
-            (report) => (
-              <Pressable
-                key={report.id}
-                onPress={() =>
-                  router.push({
-                    pathname:
-                      "/admin/admin-report-details",
-                    params: {
-                      id: String(report.id),
-                    },
-                  } as any)
-                }
-                style={({ pressed }) => [
-                  styles.reportCard,
-                  pressed && { opacity: 0.85 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Open report ${
-                  report.report_number ?? report.id
-                }`}
+
+          reports.map((report) => (
+
+            <Pressable
+              key={report.id}
+              onPress={() =>
+                router.push({
+                  pathname:
+                    "/admin/admin-report-details",
+                  params: {
+                    id: String(report.id),
+                  },
+                } as any)
+              }
+              style={({ pressed }) => [
+                styles.reportCard,
+                pressed && styles.reportCardPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open report ${
+                report.report_number ??
+                report.id
+              }`}
+            >
+
+              {/* =================================================
+                  REPORT HEADER
+              ================================================= */}
+
+              <View style={styles.reportHeader}>
+
+                <View
+                  style={
+                    styles.reportHeaderText
+                  }
+                >
+
+                  <Text
+                    style={
+                      styles.reportNumber
+                    }
+                  >
+                    {report.report_number ||
+                      `Report #${report.id}`}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.propertyName
+                    }
+                  >
+                    {report.property_name ||
+                      "Unspecified property"}
+                  </Text>
+
+                </View>
+
+                <View
+                  style={[
+                    styles.statusBadge,
+                    report.status
+                      ?.toLowerCase() ===
+                      "completed" &&
+                      styles.statusCompleted,
+
+                    report.status
+                      ?.toLowerCase() ===
+                      "repaired" &&
+                      styles.statusCompleted,
+
+                    report.status
+                      ?.toLowerCase() ===
+                      "rejected" &&
+                      styles.statusRejected,
+
+                    report.status
+                      ?.toLowerCase() ===
+                      "verified" &&
+                      styles.statusVerified,
+
+                    report.status
+                      ?.toLowerCase() ===
+                      "in_progress" &&
+                      styles.statusVerified,
+                  ]}
+                >
+
+                  <Text
+                    style={
+                      styles.statusText
+                    }
+                  >
+                    {formatStatus(
+                      report.status
+                    )}
+                  </Text>
+
+                </View>
+
+              </View>
+
+              {/* =================================================
+                  DESCRIPTION
+              ================================================= */}
+
+              <View
+                style={styles.infoBlock}
               >
-                {/* REPORT HEADER */}
-
-                <View
-                  style={
-                    styles.reportHeader
-                  }
-                >
-                  <View
-                    style={
-                      styles.reportHeaderText
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.reportNumber
-                      }
-                    >
-                      {report.report_number ||
-                        `Report #${report.id}`}
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.propertyName
-                      }
-                    >
-                      {report.property_name ||
-                        "Unspecified property"}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      report.status
-                        ?.toLowerCase() ===
-                        "completed" &&
-                        styles.statusCompleted,
-                      report.status
-                        ?.toLowerCase() ===
-                        "repaired" &&
-                        styles.statusCompleted,
-                      report.status
-                        ?.toLowerCase() ===
-                        "rejected" &&
-                        styles.statusRejected,
-                      report.status
-                        ?.toLowerCase() ===
-                        "verified" &&
-                        styles.statusVerified,
-                      report.status
-                        ?.toLowerCase() ===
-                        "in_progress" &&
-                        styles.statusVerified,
-                    ]}
-                  >
-                    <Text
-                      style={
-                        styles.statusText
-                      }
-                    >
-                      {formatStatus(
-                        report.status
-                      )}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* DESCRIPTION */}
-
-                <View
-                  style={
-                    styles.infoBlock
-                  }
-                >
-                  <Text
-                    style={
-                      styles.infoLabel
-                    }
-                  >
-                    Description
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.description
-                    }
-                  >
-                    {report.description ||
-                      "No description provided."}
-                  </Text>
-                </View>
-
-                {/* DETAILS */}
-
-                <View
-                  style={
-                    styles.detailsGrid
-                  }
-                >
-                  <View
-                    style={
-                      styles.detailItem
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.infoLabel
-                      }
-                    >
-                      Building
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {report.building_name ||
-                        selectedBuildingName ||
-                        "—"}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.detailItem
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.infoLabel
-                      }
-                    >
-                      Room
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {report.room_name ||
-                        roomName ||
-                        "—"}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.detailItem
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.infoLabel
-                      }
-                    >
-                      Priority
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {formatPriority(
-                        report.priority
-                      )}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.detailItem
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.infoLabel
-                      }
-                    >
-                      Reported
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.detailValue
-                      }
-                    >
-                      {formatDate(
-                        report.reported_at ||
-                          report.created_at
-                      )}
-                    </Text>
-                  </View>
-                </View>
 
                 <Text
-                  style={{
-                    color: COLORS.maroon,
-                    fontWeight: "800",
-                    fontSize: 12,
-                    marginTop: 10,
-                  }}
+                  style={styles.infoLabel}
                 >
-                  View details and actions ›
+                  DESCRIPTION
                 </Text>
-              </Pressable>
-            )
-          )
+
+                <Text
+                  style={styles.description}
+                  numberOfLines={3}
+                >
+                  {report.description ||
+                    "No description provided."}
+                </Text>
+
+              </View>
+
+              {/* =================================================
+                  DETAILS
+              ================================================= */}
+
+              <View
+                style={styles.detailsGrid}
+              >
+
+                <View
+                  style={styles.detailItem}
+                >
+
+                  <Text
+                    style={styles.infoLabel}
+                  >
+                    BUILDING
+                  </Text>
+
+                  <Text
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                  >
+                    {report.building_name ||
+                      selectedBuildingName ||
+                      "—"}
+                  </Text>
+
+                </View>
+
+                <View
+                  style={styles.detailItem}
+                >
+
+                  <Text
+                    style={styles.infoLabel}
+                  >
+                    ROOM
+                  </Text>
+
+                  <Text
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                  >
+                    {report.room_name ||
+                      roomName ||
+                      "—"}
+                  </Text>
+
+                </View>
+
+                <View
+                  style={styles.detailItem}
+                >
+
+                  <Text
+                    style={styles.infoLabel}
+                  >
+                    PRIORITY
+                  </Text>
+
+                  <Text
+                    style={styles.detailValue}
+                  >
+                    {formatPriority(
+                      report.priority
+                    )}
+                  </Text>
+
+                </View>
+
+                <View
+                  style={styles.detailItem}
+                >
+
+                  <Text
+                    style={styles.infoLabel}
+                  >
+                    REPORTED
+                  </Text>
+
+                  <Text
+                    style={styles.detailValue}
+                    numberOfLines={2}
+                  >
+                    {formatDate(
+                      report.reported_at ||
+                        report.created_at
+                    )}
+                  </Text>
+
+                </View>
+
+              </View>
+
+              {/* =================================================
+                  VIEW DETAILS
+              ================================================= */}
+
+              <View style={styles.viewDetailsRow}>
+
+                <Text
+                  style={styles.viewDetailsText}
+                >
+                  View report details
+                </Text>
+
+                <Text
+                  style={styles.arrowText}
+                >
+                  ›
+                </Text>
+
+              </View>
+
+            </Pressable>
+
+          ))
+
         )}
+
       </ScrollView>
 
-      {/* FOOTER */}
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
 
-      <View
-        style={styles.footer}
-      >
-        <Text
-          style={
-            styles.footerText
-          }
-        >
-          Showing saved reports from the
-          database.
+      <View style={styles.footer}>
+
+        <Text style={styles.footerText}>
+          Showing saved reports from the database.
         </Text>
+
       </View>
+
     </View>
   );
 }
 
-const styles =
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor:
-        COLORS.lighterMaroon,
+/* =========================================================
+   STYLES
+========================================================= */
+
+const styles = StyleSheet.create({
+
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  /* =======================================================
+     HEADER
+  ======================================================= */
+
+  header: {
+    backgroundColor: COLORS.maroon,
+    paddingHorizontal: 18,
+    paddingTop: 52,
+    paddingBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  backButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 13,
+  },
+
+  backText: {
+    color: COLORS.white,
+    fontSize: 34,
+    lineHeight: 36,
+    fontWeight: "300",
+    marginTop: -3,
+  },
+
+  headerText: {
+    flex: 1,
+  },
+
+  title: {
+    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: "800",
+  },
+
+  subtitle: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  refreshButton: {
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+
+  refreshButtonDisabled: {
+    opacity: 0.65,
+  },
+
+  refreshText: {
+    color: COLORS.maroon,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  pressed: {
+    opacity: 0.75,
+  },
+
+  /* =======================================================
+     SUMMARY
+  ======================================================= */
+
+  summary: {
+    marginHorizontal: 18,
+    marginTop: 18,
+    marginBottom: 12,
+    padding: 18,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
     },
 
-    header: {
-      backgroundColor:
-        COLORS.white,
-      paddingHorizontal:
-        Spacing.lg,
-      paddingTop: 50,
-      paddingBottom:
-        Spacing.md,
-      flexDirection: "row",
-      alignItems: "center",
-      borderBottomWidth: 1,
-      borderBottomColor:
-        COLORS.border,
+    elevation: 2,
+  },
+
+  summaryText: {
+    flex: 1,
+    paddingRight: 15,
+  },
+
+  summaryLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  roomTitle: {
+    color: COLORS.maroon,
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+
+  summarySubtext: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  summaryBadge: {
+    minWidth: 52,
+    height: 52,
+    paddingHorizontal: 10,
+    borderRadius: 26,
+    backgroundColor: COLORS.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  summaryBadgeText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  /* =======================================================
+     ERROR
+  ======================================================= */
+
+  errorBanner: {
+    marginHorizontal: 18,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#FFF1F0",
+    borderWidth: 1,
+    borderColor: "#F2C9C6",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  errorContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  errorTitle: {
+    color: "#9B2018",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 3,
+  },
+
+  errorText: {
+    color: "#A34A43",
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  retryButton: {
+    paddingVertical: 7,
+    paddingHorizontal: 5,
+  },
+
+  retryText: {
+    color: COLORS.maroon,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  /* =======================================================
+     SCROLL
+  ======================================================= */
+
+  scroll: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 22,
+  },
+
+  emptyScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 18,
+    paddingBottom: 22,
+  },
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
+
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 65,
+  },
+
+  loadingCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  loadingText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    marginTop: 12,
+  },
+
+  /* =======================================================
+     REPORT CARD
+  ======================================================= */
+
+  reportCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 17,
+    marginBottom: 13,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 7,
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
 
-    backButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor:
-        COLORS.maroon,
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginRight: 12,
-    },
+    elevation: 2,
+  },
 
-    backText: {
-      color: COLORS.white,
-      fontSize: 30,
-      lineHeight: 32,
-      marginTop: -3,
-    },
+  reportCardPressed: {
+    opacity: 0.86,
+    transform: [
+      {
+        scale: 0.99,
+      },
+    ],
+  },
 
-    headerText: {
-      flex: 1,
-    },
+  reportHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
 
-    title: {
-      color: COLORS.maroon,
-      fontSize: 20,
-      fontWeight: "800",
-    },
+  reportHeaderText: {
+    flex: 1,
+    paddingRight: 12,
+  },
 
-    subtitle: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 11,
-      marginTop: 3,
-    },
+  reportNumber: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+  },
 
-    refreshButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 9,
-      borderRadius: 8,
-      backgroundColor:
-        COLORS.lighterMaroon,
-      marginLeft: 8,
-    },
+  propertyName: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 4,
+    lineHeight: 23,
+  },
 
-    refreshButtonDisabled: {
-      opacity: 0.6,
-    },
+  /* =======================================================
+     STATUS
+  ======================================================= */
 
-    refreshText: {
-      color: COLORS.maroon,
-      fontSize: 12,
-      fontWeight: "700",
-    },
+  statusBadge: {
+    backgroundColor: "#FFF4DF",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
 
-    summary: {
-      margin: 12,
-      padding: 14,
-      borderRadius: 10,
-      backgroundColor:
-        COLORS.white,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-    },
+  statusVerified: {
+    backgroundColor: "#E8F1FB",
+  },
 
-    summaryText: {
-      flex: 1,
-    },
+  statusCompleted: {
+    backgroundColor: "#E8F6EC",
+  },
 
-    summaryLabel: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 12,
-    },
+  statusRejected: {
+    backgroundColor: "#FFE9E8",
+  },
 
-    roomTitle: {
-      color: COLORS.maroon,
-      fontSize: 18,
-      fontWeight: "800",
-      marginTop: 3,
-    },
+  statusText: {
+    color: "#765000",
+    fontSize: 10,
+    fontWeight: "800",
+  },
 
-    summaryBadge: {
-      minWidth: 42,
-      height: 42,
-      paddingHorizontal: 10,
-      borderRadius: 21,
-      backgroundColor:
-        COLORS.maroon,
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginLeft: 12,
-    },
+  /* =======================================================
+     DESCRIPTION
+  ======================================================= */
 
-    summaryBadgeText: {
-      color: COLORS.white,
-      fontSize: 16,
-      fontWeight: "800",
-    },
+  infoBlock: {
+    backgroundColor: "#FAF7F8",
+    borderRadius: 12,
+    padding: 13,
+    marginBottom: 14,
+  },
 
-    scroll: {
-      flex: 1,
-    },
+  infoLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    marginBottom: 5,
+  },
 
-    scrollContent: {
-      paddingHorizontal: 12,
-      paddingBottom: 20,
-    },
+  description: {
+    color: COLORS.text,
+    fontSize: 13,
+    lineHeight: 19,
+  },
 
-    emptyScrollContent: {
-      flexGrow: 1,
-      paddingHorizontal: 12,
-      paddingBottom: 20,
-    },
+  /* =======================================================
+     DETAILS
+  ======================================================= */
 
-    loadingContainer: {
-      paddingTop: 60,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+  detailsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 13,
+  },
 
-    loadingText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 13,
-      marginTop: 10,
-    },
+  detailItem: {
+    width: "50%",
+    marginBottom: 12,
+    paddingRight: 10,
+  },
 
-    reportCard: {
-      backgroundColor:
-        COLORS.white,
-      borderRadius: 12,
-      padding: 15,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-    },
+  detailValue: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 17,
+  },
 
-    reportHeader: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent:
-        "space-between",
-      marginBottom: 14,
-    },
+  /* =======================================================
+     VIEW DETAILS
+  ======================================================= */
 
-    reportHeaderText: {
-      flex: 1,
-      paddingRight: 10,
-    },
+  viewDetailsRow: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: 2,
+    paddingTop: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 
-    reportNumber: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 11,
-      fontWeight: "700",
-    },
+  viewDetailsText: {
+    color: COLORS.maroon,
+    fontSize: 12,
+    fontWeight: "800",
+  },
 
-    propertyName: {
-      color: COLORS.maroon,
-      fontSize: 17,
-      fontWeight: "800",
-      marginTop: 3,
-    },
+  arrowText: {
+    color: COLORS.maroon,
+    fontSize: 21,
+    lineHeight: 21,
+    fontWeight: "500",
+  },
 
-    statusBadge: {
-      backgroundColor:
-        "#FFF1D6",
-      paddingHorizontal: 9,
-      paddingVertical: 5,
-      borderRadius: 12,
-    },
+  /* =======================================================
+     EMPTY
+  ======================================================= */
 
-    statusVerified: {
-      backgroundColor:
-        "#E7F4EA",
-    },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
+    paddingTop: 60,
+  },
 
-    statusCompleted: {
-      backgroundColor:
-        "#E7F4EA",
-    },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
 
-    statusRejected: {
-      backgroundColor:
-        "#FFE7E7",
-    },
+  emptyIconText: {
+    color: COLORS.maroon,
+    fontSize: 28,
+    fontWeight: "800",
+  },
 
-    statusText: {
-      color: "#555555",
-      fontSize: 10,
-      fontWeight: "800",
-    },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
 
-    infoBlock: {
-      marginBottom: 14,
-    },
+  emptyText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+  },
 
-    infoLabel: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 10,
-      fontWeight: "700",
-      textTransform: "uppercase",
-      marginBottom: 4,
-    },
+  /* =======================================================
+     FOOTER
+  ======================================================= */
 
-    description: {
-      color: COLORS.text,
-      fontSize: 13,
-      lineHeight: 19,
-    },
+  footer: {
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
 
-    detailsGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      borderTopWidth: 1,
-      borderTopColor:
-        COLORS.border,
-      paddingTop: 12,
-    },
-
-    detailItem: {
-      width: "50%",
-      marginBottom: 10,
-      paddingRight: 8,
-    },
-
-    detailValue: {
-      color: COLORS.text,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-
-    emptyContainer: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent:
-        "center",
-      paddingHorizontal: 30,
-    },
-
-    emptyIcon: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor:
-        COLORS.white,
-      alignItems: "center",
-      justifyContent:
-        "center",
-      marginBottom: 14,
-    },
-
-    emptyIconText: {
-      color: COLORS.maroon,
-      fontSize: 28,
-      fontWeight: "800",
-    },
-
-    emptyTitle: {
-      color: COLORS.maroon,
-      fontSize: 20,
-      fontWeight: "800",
-      marginBottom: 6,
-    },
-
-    emptyText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 13,
-      textAlign: "center",
-      lineHeight: 19,
-    },
-
-    errorBanner: {
-      marginHorizontal: 12,
-      marginBottom: 10,
-      padding: 12,
-      borderRadius: 8,
-      backgroundColor:
-        "#FFF0F0",
-    },
-
-    errorText: {
-      color: "#A00000",
-      fontSize: 12,
-    },
-
-    retryText: {
-      color: COLORS.maroon,
-      fontSize: 12,
-      fontWeight: "800",
-      marginTop: 6,
-    },
-
-    footer: {
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      backgroundColor:
-        COLORS.white,
-      borderTopWidth: 1,
-      borderTopColor:
-        COLORS.border,
-    },
-
-    footerText: {
-      color:
-        COLORS.textSecondary,
-      fontSize: 10,
-      textAlign: "center",
-    },
-  });
+  footerText: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    textAlign: "center",
+  },
+});

@@ -37,7 +37,13 @@ function getReportTitle(title: string | null | undefined) {
   return cleanTitle;
 }
 
-function HistoryHeader() {
+function HistoryHeader({
+  onRefresh,
+  refreshing,
+}: {
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   const handleBack = () => {
     router.replace("/user/user-dashboard" as any);
   };
@@ -66,6 +72,20 @@ function HistoryHeader() {
           Closed and resolved reports
         </Text>
       </View>
+
+      <Pressable
+        onPress={onRefresh}
+        disabled={refreshing}
+        style={({ pressed }) => [
+          styles.refreshButton,
+          pressed && styles.refreshButtonPressed,
+          refreshing && styles.refreshButtonDisabled,
+        ]}
+      >
+        <Text style={styles.refreshButtonText}>
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -105,6 +125,8 @@ export default function History() {
   );
 
   const onRefresh = () => {
+    if (refreshing) return;
+
     setRefreshing(true);
     loadHistory();
   };
@@ -123,7 +145,10 @@ export default function History() {
 
   return (
     <Page>
-      <HistoryHeader />
+      <HistoryHeader
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+      />
 
       <ScrollView
         refreshControl={
@@ -144,6 +169,7 @@ export default function History() {
                 title="Unable to load history"
                 meta={error}
               />
+
               <Item
                 title="Try again"
                 meta="Tap to reload your report history"
@@ -204,6 +230,7 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 16,
   },
+
   backButton: {
     width: 56,
     height: 56,
@@ -213,9 +240,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 14,
   },
+
   backButtonPressed: {
     opacity: 0.8,
   },
+
   backButtonText: {
     color: "#FFFFFF",
     fontSize: 38,
@@ -223,23 +252,50 @@ const styles = StyleSheet.create({
     marginTop: -4,
     fontWeight: "400",
   },
+
   headerText: {
     flex: 1,
   },
+
   headerTitle: {
     color: C.ink,
     fontSize: 24,
     fontWeight: "700",
   },
+
   headerSubtitle: {
     color: C.muted,
     fontSize: 14,
     marginTop: 3,
   },
+
+  refreshButton: {
+    backgroundColor: C.maroon,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+
+  refreshButtonPressed: {
+    opacity: 0.8,
+  },
+
+  refreshButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  refreshButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
   loadingContainer: {
     padding: 24,
     alignItems: "center",
   },
+
   errorContainer: {
     padding: 16,
   },

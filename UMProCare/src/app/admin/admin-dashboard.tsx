@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,7 +11,7 @@ import {
 import { router, useFocusEffect } from "expo-router";
 
 import NotificationBell from "../../components/NotificationBell";
-import { apiRequest, logout } from "../../services/api";
+import { apiRequest } from "../../services/api";
 
 type Report = {
   id: number;
@@ -41,19 +40,18 @@ const EMPTY_SUMMARY = {
 };
 
 const COLORS = {
-  maroon: "#7A1F2B",
-  maroonDark: "#5F1721",
-  maroonLight: "#F8ECEE",
-  maroonSoft: "#FBF3F4",
+  maroon: "#800000",
+  darkMaroon: "#5A0000",
+  lighterMaroon: "#F5E6E8",
 
-  background: "#F5F5F5",
-  card: "#FFFFFF",
+  background: "#F6F6F6",
+  white: "#FFFFFF",
 
   text: "#202124",
   textSecondary: "#687078",
-  textMuted: "#92999F",
+  muted: "#92999F",
 
-  border: "#E5E5E5",
+  border: "#E7E7E7",
 
   pending: "#D97706",
   pendingBg: "#FFF4DF",
@@ -123,34 +121,12 @@ export default function AdminDashboardScreen() {
     });
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Log out",
-      "Are you sure you want to log out?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Log out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              console.error("Logout error:", error);
-            } finally {
-              router.replace("/login");
-            }
-          },
-        },
-      ]
-    );
+  const openAllReports = () => {
+    router.push("/admin/admin-reports");
   };
 
-  const openAllReports = () => {
-    router.navigate("/admin/admin-reports");
+  const openCampusMap = () => {
+    router.push("/campus-map" as any);
   };
 
   return (
@@ -163,6 +139,7 @@ export default function AdminDashboardScreen() {
             refreshing={refreshing}
             onRefresh={() => loadDashboard(true)}
             tintColor={COLORS.maroon}
+            colors={[COLORS.maroon]}
           />
         }
       >
@@ -172,55 +149,67 @@ export default function AdminDashboardScreen() {
 
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.adminBadge}>
-              <Text style={styles.adminBadgeText}>A</Text>
+            <View style={styles.profileCircle}>
+              <Text style={styles.profileLetter}>A</Text>
             </View>
 
-            <View>
-              <Text style={styles.eyebrow}>PROPERTY CARE</Text>
+            <View style={styles.greetingContainer}>
+              <Text style={styles.smallGreeting}>
+                Welcome back
+              </Text>
 
-              <Text style={styles.pageTitle}>
-                Admin Dashboard
+              <Text style={styles.adminName}>
+                Administrator
               </Text>
             </View>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <NotificationBell target="admin" tone="dark" />
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleLogout}
-              style={({ pressed }) => [
-                styles.logoutButton,
-                pressed && styles.logoutButtonPressed,
-              ]}
-            >
-              <Text style={styles.logoutText}>Log out</Text>
-            </Pressable>
-          </View>
+          <NotificationBell
+            target="admin"
+            tone="dark"
+          />
         </View>
 
         {/* =====================================================
-            DASHBOARD INTRO
+            WELCOME CARD
         ===================================================== */}
 
-        <View style={styles.introCard}>
-          <View style={styles.introAccent} />
-
-          <View style={styles.introContent}>
-            <Text style={styles.introTitle}>
-              School Property Reports
+        <View style={styles.welcomeCard}>
+          <View style={styles.welcomeContent}>
+            <Text style={styles.welcomeSmallText}>
+              ADMINISTRATOR
             </Text>
 
-            <Text style={styles.introText}>
-              Monitor submitted reports and track the current
-              repair status of school property.
+            <Text style={styles.welcomeTitle}>
+              Manage School Property
             </Text>
+
+            <Text style={styles.welcomeDescription}>
+              Review damage reports and monitor the
+              condition of school property.
+            </Text>
+
+            <Pressable
+              onPress={openAllReports}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.primaryButtonPressed,
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>
+                View Reports
+              </Text>
+
+              <Text style={styles.primaryButtonArrow}>
+                ›
+              </Text>
+            </Pressable>
           </View>
 
-          <View style={styles.introIcon}>
-            <Text style={styles.introIconText}>▣</Text>
+          <View style={styles.welcomeDecoration}>
+            <View style={styles.decorationLine} />
+            <View style={styles.decorationLineSmall} />
+            <View style={styles.decorationSquare} />
           </View>
         </View>
 
@@ -229,20 +218,14 @@ export default function AdminDashboardScreen() {
         ===================================================== */}
 
         {loading ? (
-          <View style={styles.loadingBox}>
-            <View style={styles.loadingIcon}>
-              <ActivityIndicator
-                size="small"
-                color={COLORS.maroon}
-              />
-            </View>
-
-            <Text style={styles.loadingTitle}>
-              Loading dashboard
-            </Text>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator
+              size="small"
+              color={COLORS.maroon}
+            />
 
             <Text style={styles.loadingText}>
-              Getting the latest report information...
+              Loading dashboard...
             </Text>
           </View>
         ) : (
@@ -252,108 +235,109 @@ export default function AdminDashboardScreen() {
             ================================================= */}
 
             {!!errorMessage && (
-              <View style={styles.errorBox}>
-                <View style={styles.errorIcon}>
-                  <Text style={styles.errorIconText}>!</Text>
-                </View>
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>
+                  Unable to load dashboard
+                </Text>
 
-                <View style={styles.errorContent}>
-                  <Text style={styles.errorTitle}>
-                    Unable to load dashboard
+                <Text style={styles.errorText}>
+                  {errorMessage}
+                </Text>
+
+                <Pressable
+                  onPress={() => loadDashboard()}
+                  style={styles.retryButton}
+                >
+                  <Text style={styles.retryText}>
+                    Try again
                   </Text>
-
-                  <Text style={styles.errorText}>
-                    {errorMessage}
-                  </Text>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => loadDashboard()}
-                    style={styles.retryButton}
-                  >
-                    <Text style={styles.retryText}>
-                      Try again
-                    </Text>
-                  </Pressable>
-                </View>
+                </Pressable>
               </View>
             )}
 
             {/* =================================================
-                REPORT SUMMARY
+                OVERVIEW
             ================================================= */}
 
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>
-                  Report Summary
+                  Report Overview
                 </Text>
 
                 <Text style={styles.sectionSubtitle}>
-                  Overview of current property reports
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.summaryGrid}>
-              <SummaryCard
-                label="Total Reports"
-                count={summary.total}
-                accent={COLORS.maroon}
-                icon="▣"
-              />
-
-              <SummaryCard
-                label="Pending"
-                count={summary.pending}
-                accent={COLORS.pending}
-                icon="◷"
-              />
-
-              <SummaryCard
-                label="In Progress"
-                count={summary.in_progress}
-                accent={COLORS.progress}
-                icon="↻"
-              />
-
-              <SummaryCard
-                label="Completed"
-                count={summary.completed}
-                accent={COLORS.completed}
-                icon="✓"
-              />
-            </View>
-
-            {/* =================================================
-                NEEDS REVIEW HEADER
-            ================================================= */}
-
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewHeaderLeft}>
-                <View style={styles.reviewTitleRow}>
-                  <Text style={styles.sectionTitle}>
-                    Needs Review
-                  </Text>
-
-                  {summary.pending > 0 && (
-                    <View style={styles.pendingCountBadge}>
-                      <Text style={styles.pendingCountText}>
-                        {summary.pending}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                <Text style={styles.sectionSubtitle}>
-                  Latest reports awaiting review
+                  Current property report activity
                 </Text>
               </View>
 
               <Pressable
-                accessibilityRole="button"
+                onPress={() => loadDashboard(true)}
+                disabled={refreshing}
+                style={({ pressed }) => [
+                  styles.refreshButton,
+                  pressed && styles.refreshPressed,
+                  refreshing && styles.refreshDisabled,
+                ]}
+              >
+                <Text style={styles.refreshText}>
+                  {refreshing
+                    ? "Refreshing..."
+                    : "Refresh"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* =================================================
+                STAT CARDS
+            ================================================= */}
+
+            <View style={styles.statsGrid}>
+              <StatCard
+                title="Total"
+                value={summary.total}
+                background={COLORS.lighterMaroon}
+                accent={COLORS.maroon}
+              />
+
+              <StatCard
+                title="Pending"
+                value={summary.pending}
+                background={COLORS.pendingBg}
+                accent={COLORS.pending}
+              />
+
+              <StatCard
+                title="In Progress"
+                value={summary.in_progress}
+                background={COLORS.progressBg}
+                accent={COLORS.progress}
+              />
+
+              <StatCard
+                title="Completed"
+                value={summary.completed}
+                background={COLORS.completedBg}
+                accent={COLORS.completed}
+              />
+            </View>
+
+            {/* =================================================
+                NEEDS REVIEW
+            ================================================= */}
+
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>
+                  Needs Review
+                </Text>
+
+                <Text style={styles.sectionSubtitle}>
+                  Reports waiting for administrator action
+                </Text>
+              </View>
+
+              <Pressable
                 onPress={openAllReports}
-                hitSlop={8}
                 style={({ pressed }) => [
                   styles.viewAllButton,
                   pressed && styles.viewAllPressed,
@@ -363,143 +347,167 @@ export default function AdminDashboardScreen() {
                   View all
                 </Text>
 
-                <Text style={styles.viewAllArrow}>›</Text>
+                <Text style={styles.viewAllArrow}>
+                  ›
+                </Text>
               </Pressable>
             </View>
 
-            {/* =================================================
-                EMPTY STATE
-            ================================================= */}
-
             {needsReview.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyIconText}>✓</Text>
+              <View style={styles.emptyCard}>
+                <View style={styles.emptyCircle}>
+                  <Text style={styles.emptyCheck}>
+                    ✓
+                  </Text>
                 </View>
 
                 <Text style={styles.emptyTitle}>
-                  No reports to review
+                  No reports waiting for review
                 </Text>
 
                 <Text style={styles.emptyText}>
-                  New reports awaiting administrator review will
+                  New reports submitted by users will
                   appear here.
                 </Text>
               </View>
             ) : (
-              /* =================================================
-                 REPORT QUEUE
-              ================================================= */
+              <View style={styles.reportsCard}>
+                {needsReview.map((report, index) => {
+                  const location = [
+                    report.building_name,
+                    report.room_name,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ");
 
-              <View style={styles.reportList}>
-                {needsReview.map((report, index) => (
-                  <Pressable
-                    key={report.id}
-                    accessibilityRole="button"
-                    onPress={() => openReport(report)}
-                    style={({ pressed }) => [
-                      styles.reportRow,
-                      index === needsReview.length - 1 &&
-                        styles.lastReportRow,
-                      pressed && styles.reportRowPressed,
-                    ]}
-                  >
-                    {/* Left status indicator */}
-                    <View style={styles.reportIndicator} />
+                  return (
+                    <Pressable
+                      key={report.id}
+                      onPress={() => openReport(report)}
+                      style={({ pressed }) => [
+                        styles.reportItem,
+                        index ===
+                          needsReview.length - 1 &&
+                          styles.lastReportItem,
+                        pressed &&
+                          styles.reportItemPressed,
+                      ]}
+                    >
+                      <View
+                        style={styles.reportAccent}
+                      />
 
-                    <View style={styles.reportMain}>
-                      <View style={styles.reportTitleRow}>
+                      <View style={styles.reportContent}>
                         <Text
                           style={styles.reportTitle}
                           numberOfLines={2}
                         >
-                          {report.title || "Damage report"}
+                          {report.title ||
+                            "Damage report"}
                         </Text>
 
-                        <View style={styles.pendingBadge}>
-                          <View style={styles.pendingDot} />
-
-                          <Text style={styles.pendingBadgeText}>
-                            Pending
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text style={styles.reportNumber}>
-                        {report.report_number}
-                      </Text>
-
-                      <View style={styles.locationRow}>
-                        <Text style={styles.locationIcon}>
-                          ⌖
+                        <Text
+                          style={styles.reportNumber}
+                        >
+                          {report.report_number}
                         </Text>
 
                         <Text
                           style={styles.reportLocation}
                           numberOfLines={1}
                         >
-                          {[
-                            report.building_name,
-                            report.room_name,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ") ||
+                          {location ||
                             "Location not specified"}
                         </Text>
                       </View>
-                    </View>
 
-                    <View style={styles.chevronContainer}>
-                      <Text style={styles.chevron}>›</Text>
-                    </View>
-                  </Pressable>
-                ))}
+                      <View style={styles.reportRight}>
+                        <View style={styles.pendingBadge}>
+                          <Text
+                            style={styles.pendingBadgeText}
+                          >
+                            Pending
+                          </Text>
+                        </View>
+
+                        <Text style={styles.chevron}>
+                          ›
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
 
             {/* =================================================
-                REPORT STATUS
+                STATUS OVERVIEW
             ================================================= */}
 
-            <View style={styles.statusSection}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>
-                    Report Status
-                  </Text>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>
+                  Report Status
+                </Text>
 
-                  <Text style={styles.sectionSubtitle}>
-                    Current distribution of reports
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statusCard}>
-                <StatusRow
-                  label="Pending"
-                  count={summary.pending}
-                  total={summary.total}
-                  color={COLORS.pending}
-                  background={COLORS.pendingBg}
-                />
-
-                <StatusRow
-                  label="In Progress"
-                  count={summary.in_progress}
-                  total={summary.total}
-                  color={COLORS.progress}
-                  background={COLORS.progressBg}
-                />
-
-                <StatusRow
-                  label="Completed"
-                  count={summary.completed}
-                  total={summary.total}
-                  color={COLORS.completed}
-                  background={COLORS.completedBg}
-                />
+                <Text style={styles.sectionSubtitle}>
+                  Current progress of property reports
+                </Text>
               </View>
             </View>
+
+            <View style={styles.statusCard}>
+              <StatusRow
+                label="Pending"
+                count={summary.pending}
+                total={summary.total}
+                color={COLORS.pending}
+                background={COLORS.pendingBg}
+              />
+
+              <StatusRow
+                label="In Progress"
+                count={summary.in_progress}
+                total={summary.total}
+                color={COLORS.progress}
+                background={COLORS.progressBg}
+              />
+
+              <StatusRow
+                label="Completed"
+                count={summary.completed}
+                total={summary.total}
+                color={COLORS.completed}
+                background={COLORS.completedBg}
+                last
+              />
+            </View>
+
+            {/* =================================================
+                BOTTOM CARD
+            ================================================= */}
+
+            <Pressable
+              onPress={openAllReports}
+              style={({ pressed }) => [
+                styles.bottomCard,
+                pressed && styles.bottomCardPressed,
+              ]}
+            >
+              <View>
+                <Text style={styles.bottomTitle}>
+                  Manage all property reports
+                </Text>
+
+                <Text style={styles.bottomSubtitle}>
+                  Open the complete report management page
+                </Text>
+              </View>
+
+              <Text style={styles.bottomArrow}>
+                ›
+              </Text>
+            </Pressable>
           </>
         )}
       </ScrollView>
@@ -507,56 +515,36 @@ export default function AdminDashboardScreen() {
   );
 }
 
-/* ===============================================================
-   SUMMARY CARD
-=============================================================== */
+/* ============================================================
+   STAT CARD
+============================================================ */
 
-type SummaryCardProps = {
-  label: string;
-  count: number;
+type StatCardProps = {
+  title: string;
+  value: number;
+  background: string;
   accent: string;
-  icon: string;
 };
 
-function SummaryCard({
-  label,
-  count,
+function StatCard({
+  title,
+  value,
+  background,
   accent,
-  icon,
-}: SummaryCardProps) {
+}: StatCardProps) {
   return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryTopRow}>
+    <View style={styles.statCard}>
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor: background,
+          },
+        ]}
+      >
         <View
           style={[
-            styles.summaryIcon,
-            {
-              backgroundColor:
-                accent === COLORS.maroon
-                  ? COLORS.maroonLight
-                  : accent === COLORS.pending
-                  ? COLORS.pendingBg
-                  : accent === COLORS.progress
-                  ? COLORS.progressBg
-                  : COLORS.completedBg,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.summaryIconText,
-              {
-                color: accent,
-              },
-            ]}
-          >
-            {icon}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.summaryAccent,
+            styles.statIconInner,
             {
               backgroundColor: accent,
             },
@@ -564,16 +552,69 @@ function SummaryCard({
         />
       </View>
 
-      <Text style={styles.summaryCount}>{count}</Text>
+      <Text style={styles.statValue}>
+        {value}
+      </Text>
 
-      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.statTitle}>
+        {title}
+      </Text>
+
+      <View
+        style={[
+          styles.statLine,
+          {
+            backgroundColor: accent,
+          },
+        ]}
+      />
     </View>
   );
 }
 
-/* ===============================================================
+/* ============================================================
+   QUICK ACTION
+============================================================ */
+
+type QuickActionProps = {
+  title: string;
+  description: string;
+  onPress: () => void;
+};
+
+function QuickAction({
+  title,
+  description,
+  onPress,
+}: QuickActionProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.quickAction,
+        pressed && styles.quickActionPressed,
+      ]}
+    >
+      <View style={styles.quickActionText}>
+        <Text style={styles.quickActionTitle}>
+          {title}
+        </Text>
+
+        <Text style={styles.quickActionDescription}>
+          {description}
+        </Text>
+      </View>
+
+      <Text style={styles.quickActionArrow}>
+        ›
+      </Text>
+    </Pressable>
+  );
+}
+
+/* ============================================================
    STATUS ROW
-=============================================================== */
+============================================================ */
 
 type StatusRowProps = {
   label: string;
@@ -581,6 +622,7 @@ type StatusRowProps = {
   total: number;
   color: string;
   background: string;
+  last?: boolean;
 };
 
 function StatusRow({
@@ -589,26 +631,58 @@ function StatusRow({
   total,
   color,
   background,
+  last = false,
 }: StatusRowProps) {
   const percentage =
-    total > 0 ? Math.round((count / total) * 100) : 0;
+    total > 0
+      ? Math.round((count / total) * 100)
+      : 0;
 
   return (
-    <View style={styles.statusRow}>
-      <View style={styles.statusLabelArea}>
+    <View
+      style={[
+        styles.statusRow,
+        last && styles.statusRowLast,
+      ]}
+    >
+      <View style={styles.statusTop}>
+        <View style={styles.statusLabelContainer}>
+          <View
+            style={[
+              styles.statusDot,
+              {
+                backgroundColor: color,
+              },
+            ]}
+          />
+
+          <Text style={styles.statusLabel}>
+            {label}
+          </Text>
+        </View>
+
         <View
           style={[
-            styles.statusDot,
+            styles.statusBadge,
             {
-              backgroundColor: color,
+              backgroundColor: background,
             },
           ]}
-        />
-
-        <Text style={styles.statusLabel}>{label}</Text>
+        >
+          <Text
+            style={[
+              styles.statusBadgeText,
+              {
+                color,
+              },
+            ]}
+          >
+            {count}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.statusBarContainer}>
+      <View style={styles.statusProgressRow}>
         <View style={styles.statusTrack}>
           <View
             style={[
@@ -620,34 +694,18 @@ function StatusRow({
             ]}
           />
         </View>
-      </View>
 
-      <View
-        style={[
-          styles.statusCountBadge,
-          {
-            backgroundColor: background,
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.statusCount,
-            {
-              color,
-            },
-          ]}
-        >
-          {count}
+        <Text style={styles.statusPercentage}>
+          {percentage}%
         </Text>
       </View>
     </View>
   );
 }
 
-/* ===============================================================
+/* ============================================================
    STYLES
-=============================================================== */
+============================================================ */
 
 const styles = StyleSheet.create({
   screen: {
@@ -656,19 +714,18 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 45,
   },
 
-  /* -------------------------------------------------------------
-     HEADER
-  ------------------------------------------------------------- */
+  /* HEADER */
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 30,
     marginBottom: 22,
   },
 
@@ -678,184 +735,179 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  adminBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+  profileCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: COLORS.maroon,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 11,
+    marginRight: 12,
   },
 
-  adminBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 17,
+  profileLetter: {
+    color: COLORS.white,
+    fontSize: 18,
     fontWeight: "900",
   },
 
-  eyebrow: {
-    color: COLORS.maroon,
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    marginBottom: 3,
+  greetingContainer: {
+    flex: 1,
   },
 
-  pageTitle: {
-    color: COLORS.text,
-    fontSize: 21,
-    fontWeight: "900",
-  },
-
-  logoutButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 9,
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-
-  logoutButtonPressed: {
-    backgroundColor: "#F0F0F0",
-  },
-
-  logoutText: {
+  smallGreeting: {
     color: COLORS.textSecondary,
     fontSize: 11,
-    fontWeight: "800",
+    marginBottom: 2,
   },
 
-  /* -------------------------------------------------------------
-     INTRO CARD
-  ------------------------------------------------------------- */
-
-  introCard: {
-    minHeight: 112,
-    borderRadius: 16,
-    backgroundColor: COLORS.maroon,
-    marginBottom: 26,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-
-  introAccent: {
-    width: 4,
-    height: 63,
-    borderRadius: 3,
-    backgroundColor: "#D9A1A8",
-    marginRight: 13,
-  },
-
-  introContent: {
-    flex: 1,
-    paddingRight: 10,
-  },
-
-  introTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
+  adminName: {
+    color: COLORS.text,
+    fontSize: 19,
     fontWeight: "900",
   },
 
-  introText: {
+  /* WELCOME */
+
+  welcomeCard: {
+    backgroundColor: COLORS.maroon,
+    borderRadius: 20,
+    minHeight: 190,
+    padding: 20,
+    marginBottom: 27,
+    overflow: "hidden",
+    flexDirection: "row",
+  },
+
+  welcomeContent: {
+    flex: 1,
+    zIndex: 2,
+  },
+
+  welcomeSmallText: {
+    color: "#EACED2",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.3,
+  },
+
+  welcomeTitle: {
+    color: COLORS.white,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: "900",
+    marginTop: 7,
+    maxWidth: 250,
+  },
+
+  welcomeDescription: {
     color: "#F1DDE0",
     fontSize: 11,
     lineHeight: 17,
-    marginTop: 5,
+    marginTop: 6,
+    maxWidth: 270,
   },
 
-  introIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.13)",
+  primaryButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 15,
   },
 
-  introIconText: {
-    color: "#FFFFFF",
-    fontSize: 21,
+  primaryButtonPressed: {
+    opacity: 0.8,
+  },
+
+  primaryButtonText: {
+    color: COLORS.maroon,
+    fontSize: 11,
     fontWeight: "900",
   },
 
-  /* -------------------------------------------------------------
-     LOADING
-  ------------------------------------------------------------- */
+  primaryButtonArrow: {
+    color: COLORS.maroon,
+    fontSize: 18,
+    marginLeft: 7,
+    marginTop: -1,
+  },
 
-  loadingBox: {
-    backgroundColor: COLORS.card,
-    borderRadius: 15,
+  welcomeDecoration: {
+    position: "absolute",
+    right: -15,
+    top: 0,
+    width: 120,
+    height: "100%",
+    opacity: 0.25,
+  },
+
+  decorationLine: {
+    position: "absolute",
+    width: 95,
+    height: 95,
+    borderRadius: 48,
+    borderWidth: 18,
+    borderColor: "#FFFFFF",
+    right: -30,
+    top: 22,
+  },
+
+  decorationLineSmall: {
+    position: "absolute",
+    width: 65,
+    height: 65,
+    borderRadius: 33,
+    borderWidth: 10,
+    borderColor: "#FFFFFF",
+    right: 17,
+    bottom: -25,
+  },
+
+  decorationSquare: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    backgroundColor: "#FFFFFF",
+    right: 50,
+    top: 42,
+    transform: [{ rotate: "15deg" }],
+  },
+
+  /* LOADING */
+
+  loadingCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    paddingVertical: 45,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingVertical: 55,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.maroonLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 12,
   },
 
   loadingText: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    marginTop: 5,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 10,
   },
 
-  /* -------------------------------------------------------------
-     ERROR
-  ------------------------------------------------------------- */
+  /* ERROR */
 
-  errorBox: {
-    flexDirection: "row",
-    padding: 14,
+  errorCard: {
+    backgroundColor: COLORS.dangerBg,
+    borderRadius: 14,
+    padding: 15,
     marginBottom: 20,
-    borderRadius: 13,
     borderWidth: 1,
     borderColor: "#F0C9C6",
-    backgroundColor: COLORS.dangerBg,
-  },
-
-  errorIcon: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: "#F9D9D6",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-
-  errorIconText: {
-    color: COLORS.danger,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-
-  errorContent: {
-    flex: 1,
   },
 
   errorTitle: {
     color: COLORS.danger,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "900",
   },
 
@@ -863,12 +915,12 @@ const styles = StyleSheet.create({
     color: "#8E3A35",
     fontSize: 11,
     lineHeight: 16,
-    marginTop: 3,
+    marginTop: 4,
   },
 
   retryButton: {
     alignSelf: "flex-start",
-    marginTop: 7,
+    marginTop: 8,
   },
 
   retryText: {
@@ -877,12 +929,18 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
-  /* -------------------------------------------------------------
-     SECTION
-  ------------------------------------------------------------- */
+  /* SECTIONS */
 
   sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
+  },
+
+  sectionHeaderLeft: {
+    flex: 1,
+    paddingRight: 10,
   },
 
   sectionTitle: {
@@ -892,160 +950,136 @@ const styles = StyleSheet.create({
   },
 
   sectionSubtitle: {
-    color: COLORS.textMuted,
+    color: COLORS.muted,
     fontSize: 11,
-    marginTop: 4,
+    marginTop: 3,
+    lineHeight: 16,
   },
 
-  /* -------------------------------------------------------------
-     SUMMARY CARDS
-  ------------------------------------------------------------- */
+  refreshButton: {
+    backgroundColor: COLORS.maroon,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 9,
+  },
 
-  summaryGrid: {
+  refreshPressed: {
+    opacity: 0.8,
+  },
+
+  refreshDisabled: {
+    opacity: 0.55,
+  },
+
+  refreshText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  /* STATISTICS */
+
+  statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     rowGap: 12,
-    marginBottom: 29,
+    marginBottom: 28,
   },
 
-  summaryCard: {
-    width: "48.3%",
+  statCard: {
+    width: "48.2%",
     minHeight: 130,
-    backgroundColor: COLORS.card,
-    borderRadius: 15,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 15,
   },
 
-  summaryTopRow: {
-    flexDirection: "row",
+  statIcon: {
+    width: 37,
+    height: 37,
+    borderRadius: 11,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginBottom: 12,
   },
 
-  summaryIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+  statIconInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 4,
   },
 
-  summaryIconText: {
-    fontSize: 17,
-    fontWeight: "900",
-  },
-
-  summaryAccent: {
-    width: 22,
-    height: 4,
-    borderRadius: 3,
-  },
-
-  summaryCount: {
+  statValue: {
     color: COLORS.text,
-    fontSize: 28,
-    lineHeight: 32,
+    fontSize: 27,
     fontWeight: "900",
   },
 
-  summaryLabel: {
+  statTitle: {
     color: COLORS.textSecondary,
     fontSize: 11,
     fontWeight: "700",
-    marginTop: 4,
+    marginTop: 2,
   },
 
-  /* -------------------------------------------------------------
-     REVIEW HEADER
-  ------------------------------------------------------------- */
-
-  reviewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
+  statLine: {
+    width: 22,
+    height: 4,
+    borderRadius: 3,
+    marginTop: 10,
   },
 
-  reviewHeaderLeft: {
-    flex: 1,
-  },
-
-  reviewTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  pendingCountBadge: {
-    minWidth: 23,
-    height: 23,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    backgroundColor: COLORS.maroonLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 8,
-  },
-
-  pendingCountText: {
-    color: COLORS.maroon,
-    fontSize: 10,
-    fontWeight: "900",
-  },
+  /* VIEW ALL */
 
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 10,
   },
 
   viewAllPressed: {
-    opacity: 0.55,
+    opacity: 0.6,
   },
 
   viewAllText: {
     color: COLORS.maroon,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
   },
 
   viewAllArrow: {
     color: COLORS.maroon,
-    fontSize: 19,
-    marginLeft: 2,
-    marginTop: -1,
+    fontSize: 18,
+    marginLeft: 3,
   },
 
-  /* -------------------------------------------------------------
-     EMPTY STATE
-  ------------------------------------------------------------- */
+  /* EMPTY */
 
-  emptyBox: {
-    backgroundColor: COLORS.card,
-    borderRadius: 15,
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
     alignItems: "center",
+    paddingHorizontal: 25,
+    paddingVertical: 35,
+    marginBottom: 28,
   },
 
-  emptyIcon: {
+  emptyCircle: {
     width: 47,
     height: 47,
     borderRadius: 24,
     backgroundColor: COLORS.completedBg,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
   },
 
-  emptyIconText: {
+  emptyCheck: {
     color: COLORS.completed,
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: "900",
   },
 
@@ -1053,202 +1087,272 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     fontWeight: "900",
+    marginTop: 11,
   },
 
   emptyText: {
-    color: COLORS.textMuted,
+    color: COLORS.muted,
     fontSize: 11,
-    lineHeight: 16,
-    marginTop: 5,
+    lineHeight: 17,
     textAlign: "center",
+    marginTop: 5,
   },
 
-  /* -------------------------------------------------------------
-     REPORT LIST
-  ------------------------------------------------------------- */
+  /* REPORTS */
 
-  reportList: {
-    backgroundColor: COLORS.card,
-    borderRadius: 15,
+  reportsCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+    marginBottom: 28,
+  },
+
+  reportItem: {
+    minHeight: 100,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  lastReportItem: {
+    borderBottomWidth: 0,
+  },
+
+  reportItemPressed: {
+    backgroundColor: COLORS.lighterMaroon,
+  },
+
+  reportAccent: {
+    width: 4,
+    height: 57,
+    borderRadius: 3,
+    backgroundColor: COLORS.pending,
+    marginRight: 12,
+  },
+
+  reportContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  reportTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 18,
+  },
+
+  reportNumber: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+
+  reportLocation: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    marginTop: 5,
+  },
+
+  reportRight: {
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    minHeight: 62,
+    marginLeft: 8,
+  },
+
+  pendingBadge: {
+    backgroundColor: COLORS.pendingBg,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 7,
+  },
+
+  pendingBadgeText: {
+    color: COLORS.pending,
+    fontSize: 9,
+    fontWeight: "900",
+  },
+
+  chevron: {
+    color: COLORS.maroon,
+    fontSize: 24,
+    fontWeight: "300",
+  },
+
+  /* QUICK ACTIONS */
+
+  quickActionsSection: {
+    marginBottom: 28,
+  },
+
+  quickActionsCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: "hidden",
   },
 
-  reportRow: {
-    minHeight: 94,
+  quickAction: {
+    minHeight: 69,
     flexDirection: "row",
-    alignItems: "stretch",
-    paddingRight: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
-  },
-
-  lastReportRow: {
-    borderBottomWidth: 0,
-  },
-
-  reportRowPressed: {
-    backgroundColor: "#F8F8F8",
-  },
-
-  reportIndicator: {
-    width: 4,
-    backgroundColor: COLORS.pending,
-  },
-
-  reportMain: {
-    flex: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 13,
-  },
-
-  reportTitleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
 
-  reportTitle: {
+  quickActionPressed: {
+    backgroundColor: COLORS.lighterMaroon,
+  },
+
+  quickActionText: {
     flex: 1,
+  },
+
+  quickActionTitle: {
     color: COLORS.text,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "800",
-    paddingRight: 8,
-  },
-
-  reportNumber: {
-    color: COLORS.maroon,
-    fontSize: 10,
-    fontWeight: "900",
-    marginTop: 4,
-    letterSpacing: 0.2,
-  },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-  },
-
-  locationIcon: {
-    color: COLORS.textMuted,
     fontSize: 12,
-    marginRight: 4,
-  },
-
-  reportLocation: {
-    flex: 1,
-    color: COLORS.textMuted,
-    fontSize: 10,
-  },
-
-  pendingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.pendingBg,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  pendingDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: COLORS.pending,
-    marginRight: 4,
-  },
-
-  pendingBadgeText: {
-    color: "#9A5B00",
-    fontSize: 9,
     fontWeight: "900",
   },
 
-  chevronContainer: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
+  quickActionDescription: {
+    color: COLORS.muted,
+    fontSize: 10,
+    marginTop: 3,
   },
 
-  chevron: {
-    color: "#A0A6AA",
+  quickActionArrow: {
+    color: COLORS.maroon,
     fontSize: 24,
+    fontWeight: "300",
+    marginLeft: 10,
   },
 
-  /* -------------------------------------------------------------
-     STATUS SECTION
-  ------------------------------------------------------------- */
-
-  statusSection: {
-    marginTop: 29,
-  },
+  /* STATUS */
 
   statusCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 15,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    padding: 16,
+    marginBottom: 28,
   },
 
   statusRow: {
-    minHeight: 45,
-    flexDirection: "row",
-    alignItems: "center",
+    marginBottom: 19,
   },
 
-  statusLabelArea: {
-    width: 91,
+  statusRowLast: {
+    marginBottom: 0,
+  },
+
+  statusTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+
+  statusLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
 
   statusDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    marginRight: 7,
+    marginRight: 8,
   },
 
   statusLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    fontWeight: "700",
+    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: "800",
   },
 
-  statusBarContainer: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-
-  statusTrack: {
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "#ECEEEF",
-    overflow: "hidden",
-  },
-
-  statusFill: {
-    height: "100%",
-    borderRadius: 4,
-    minWidth: 2,
-  },
-
-  statusCountBadge: {
-    minWidth: 31,
-    height: 27,
+  statusBadge: {
+    minWidth: 29,
+    height: 25,
     paddingHorizontal: 7,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  statusCount: {
-    fontSize: 11,
+  statusBadgeText: {
+    fontSize: 10,
     fontWeight: "900",
+  },
+
+  statusProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  statusTrack: {
+    flex: 1,
+    height: 7,
+    borderRadius: 5,
+    backgroundColor: "#EEEEEE",
+    overflow: "hidden",
+  },
+
+  statusFill: {
+    height: "100%",
+    borderRadius: 5,
+  },
+
+  statusPercentage: {
+    width: 40,
+    textAlign: "right",
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  /* BOTTOM */
+
+  bottomCard: {
+    minHeight: 76,
+    backgroundColor: COLORS.maroon,
+    borderRadius: 18,
+    paddingHorizontal: 17,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  bottomCardPressed: {
+    backgroundColor: COLORS.darkMaroon,
+  },
+
+  bottomTitle: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  bottomSubtitle: {
+    color: "#EFDADD",
+    fontSize: 10,
+    marginTop: 3,
+  },
+
+  bottomArrow: {
+    color: COLORS.white,
+    fontSize: 28,
+    fontWeight: "300",
   },
 });

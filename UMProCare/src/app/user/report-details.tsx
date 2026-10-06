@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
+
 import {
   ActivityIndicator,
   Image,
@@ -9,10 +10,22 @@ import {
   Text,
   View,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
 
 import { C } from "../../constants/palette";
-import { Page, Card, Pill, Button } from "../../components/Kit";
+
+import {
+  Page,
+  Card,
+  Pill,
+  Button,
+} from "../../components/Kit";
+
 import {
   getMyReportDetail,
   getStorageUrl,
@@ -193,6 +206,7 @@ function getBuildingName(
    *
    * building_name: "Old Building"
    */
+
   if (
     typeof report.building_name === "string" &&
     report.building_name.trim()
@@ -207,6 +221,7 @@ function getBuildingName(
    *   name: "Old Building"
    * }
    */
+
   if (
     report.building &&
     typeof report.building === "object" &&
@@ -219,6 +234,7 @@ function getBuildingName(
   /*
    * Relationship returned directly as string.
    */
+
   if (
     typeof report.building === "string" &&
     report.building.trim()
@@ -243,6 +259,7 @@ function getRoomName(
    *
    * room_name: "302"
    */
+
   if (
     typeof report.room_name === "string" &&
     report.room_name.trim()
@@ -257,6 +274,7 @@ function getRoomName(
    *   name: "302"
    * }
    */
+
   if (
     report.room &&
     typeof report.room === "object" &&
@@ -269,6 +287,7 @@ function getRoomName(
   /*
    * Relationship returned directly as string.
    */
+
   if (
     typeof report.room === "string" &&
     report.room.trim()
@@ -326,6 +345,7 @@ export default function ReportDetailsScreen() {
    * Currently selected photo for
    * full-screen viewing.
    */
+
   const [selectedPhoto, setSelectedPhoto] =
     useState<string | null>(null);
 
@@ -375,7 +395,7 @@ export default function ReportDetailsScreen() {
   */
 
   const loadReport =
-    useCallback(async () => {
+    useCallback(async (isRefreshing = false) => {
       if (!id) {
         setError(
           "No report was specified."
@@ -387,7 +407,19 @@ export default function ReportDetailsScreen() {
       }
 
       try {
-        setLoading(true);
+        /*
+         * When opening the screen normally,
+         * show the loading card.
+         *
+         * When refreshing because the screen
+         * came back into focus, don't hide the
+         * current report while fetching.
+         */
+
+        if (!isRefreshing) {
+          setLoading(true);
+        }
+
         setError("");
 
         const data =
@@ -453,13 +485,30 @@ export default function ReportDetailsScreen() {
             "Could not load this report."
         );
       } finally {
-        setLoading(false);
+        if (!isRefreshing) {
+          setLoading(false);
+        }
       }
     }, [id]);
 
-  useEffect(() => {
-    loadReport();
-  }, [loadReport]);
+  /*
+  |--------------------------------------------------------------------------
+  | REFRESH WHEN SCREEN GETS FOCUS
+  |--------------------------------------------------------------------------
+  |
+  | This is the important change.
+  |
+  | Whenever you return to this report-details
+  | screen, the latest report information is
+  | requested again.
+  |
+  */
+
+  useFocusEffect(
+    useCallback(() => {
+      loadReport(false);
+    }, [loadReport])
+  );
 
   /*
   |--------------------------------------------------------------------------
@@ -514,7 +563,9 @@ export default function ReportDetailsScreen() {
           <Button
             title="Try again"
             outline
-            onPress={loadReport}
+            onPress={() =>
+              loadReport(false)
+            }
           />
         </Card>
       </Page>
@@ -554,6 +605,7 @@ export default function ReportDetailsScreen() {
    * in_progress  -> 1
    * completed    -> 2
    */
+
   let currentStepIndex = 0;
 
   if (
@@ -853,6 +905,7 @@ export default function ReportDetailsScreen() {
 
       <Card>
         {/* Progress header */}
+
         <View
           style={
             styles.progressHeader
@@ -900,6 +953,7 @@ export default function ReportDetailsScreen() {
         </View>
 
         {/* Rejected */}
+
         {normalizedStatus ===
         "rejected" ? (
           <View
@@ -949,6 +1003,7 @@ export default function ReportDetailsScreen() {
           /*
            * Timeline
            */
+
           <View
             style={styles.timeline}
           >
@@ -975,12 +1030,14 @@ export default function ReportDetailsScreen() {
                     }
                   >
                     {/* LEFT SIDE */}
+
                     <View
                       style={
                         styles.timelineLeft
                       }
                     >
                       {/* CONNECTING LINE */}
+
                       {!isLast && (
                         <View
                           style={[
@@ -997,6 +1054,7 @@ export default function ReportDetailsScreen() {
                       )}
 
                       {/* STEP CIRCLE */}
+
                       <View
                         style={[
                           styles.timelineCircle,
@@ -1030,6 +1088,7 @@ export default function ReportDetailsScreen() {
                     </View>
 
                     {/* RIGHT SIDE */}
+
                     <View
                       style={[
                         styles.timelineContent,
@@ -1183,6 +1242,7 @@ export default function ReportDetailsScreen() {
           }
         >
           {/* CLOSE BUTTON */}
+
           <Pressable
             style={({ pressed }) => [
               styles.viewerCloseButton,
@@ -1206,6 +1266,7 @@ export default function ReportDetailsScreen() {
           </Pressable>
 
           {/* FULL PHOTO */}
+
           {selectedPhoto ? (
             <Image
               source={{
@@ -1498,7 +1559,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "900",
-    lineHeight: 17,
   },
 
   timelineContent: {

@@ -10,7 +10,7 @@
  * and Laravel must be started with:
  *     php artisan serve --host=0.0.0.0 --port=8000
  */
-export const SERVER_HOST = "192.168.254.108";
+export const SERVER_HOST = "192.168.1.2";
 export const SERVER_PORT = 8000;
 
 export const SERVER_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;

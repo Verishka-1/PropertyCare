@@ -33,7 +33,13 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "REJECTED",
 };
 
-function ReportsHeader() {
+function ReportsHeader({
+  onRefresh,
+  refreshing,
+}: {
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   return (
     <View style={styles.header}>
       <Pressable
@@ -51,10 +57,27 @@ function ReportsHeader() {
 
       <View style={styles.headerText}>
         <Text style={styles.headerTitle}>My reports</Text>
+
         <Text style={styles.headerSubtitle}>
           Follow the progress of your active reports
         </Text>
       </View>
+
+      <Pressable
+        onPress={onRefresh}
+        disabled={refreshing}
+        style={({ pressed }) => [
+          styles.refreshButton,
+          pressed && styles.refreshButtonPressed,
+          refreshing && styles.refreshButtonDisabled,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Refresh reports"
+      >
+        <Text style={styles.refreshText}>
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -65,43 +88,56 @@ export default function Reports() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadReports = useCallback(async () => {
-    setError("");
+  const loadReports = useCallback(
+    async (isRefreshing = false) => {
+      setError("");
 
-    try {
-      const response = await apiRequest("/my/reports");
+      if (isRefreshing) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-      const rows = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-          ? response
-          : [];
+      try {
+        const response = await apiRequest("/my/reports");
 
-      setReports(rows);
-    } catch (err: any) {
-      setError(err?.message || "Could not load your reports.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+        const rows = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response)
+            ? response
+            : [];
+
+        setReports(rows);
+      } catch (err: any) {
+        setError(err?.message || "Could not load your reports.");
+      } finally {
+        if (isRefreshing) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadReports();
+      loadReports(false);
     }, [loadReports])
   );
 
   const onRefresh = () => {
-    setRefreshing(true);
-    loadReports();
+    if (refreshing) return;
+
+    loadReports(true);
   };
 
   const formatDate = (value: string | null) => {
     if (!value) return "";
 
     const date = new Date(value);
+
     return Number.isNaN(date.getTime())
       ? value
       : date.toLocaleDateString();
@@ -109,13 +145,19 @@ export default function Reports() {
 
   // Completed and rejected reports are shown in Report History instead.
   const activeReports = reports.filter((report) => {
-    const status = report.status.toLowerCase().replaceAll(" ", "_");
+    const status = report.status
+      .toLowerCase()
+      .replaceAll(" ", "_");
+
     return status !== "completed" && status !== "rejected";
   });
 
   return (
     <Page>
-      <ReportsHeader />
+      <ReportsHeader
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -132,24 +174,25 @@ export default function Reports() {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color={COLORS.maroon} />
+
               <Text style={styles.loadingText}>
                 Loading your reports...
               </Text>
             </View>
           ) : error ? (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-
-              <Text
-                onPress={() => {
-                  setLoading(true);
-                  loadReports();
-                }}
-                style={styles.tryAgainText}
-                accessibilityRole="button"
-              >
-                Try again
+              <Text style={styles.errorText}>
+                {error}
               </Text>
+
+              <Pressable
+                onPress={() => loadReports(false)}
+                style={styles.tryAgainButton}
+              >
+                <Text style={styles.tryAgainText}>
+                  Try again
+                </Text>
+              </Pressable>
             </View>
           ) : activeReports.length === 0 ? (
             <Item
@@ -184,7 +227,9 @@ export default function Reports() {
                   meta={meta}
                   status={
                     STATUS_LABELS[normalizedStatus] ||
-                    report.status.replaceAll("_", " ").toUpperCase()
+                    report.status
+                      .replaceAll("_", " ")
+                      .toUpperCase()
                   }
                   onPress={() =>
                     router.push({
@@ -251,6 +296,28 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
+  refreshButton: {
+    backgroundColor: COLORS.maroon,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+
+  refreshButtonPressed: {
+    opacity: 0.8,
+  },
+
+  refreshButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  refreshText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
   loadingContainer: {
     padding: 24,
     alignItems: "center",
@@ -269,9 +336,13 @@ const styles = StyleSheet.create({
     color: "#B42318",
   },
 
+  tryAgainButton: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+  },
+
   tryAgainText: {
     color: COLORS.maroon,
     fontWeight: "700",
-    marginTop: 12,
   },
 });
