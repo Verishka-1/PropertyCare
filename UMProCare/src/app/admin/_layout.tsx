@@ -138,7 +138,7 @@ export default function AdminTabsLayout() {
         options={{ href: null }}
       />
 
-      {/* Older screens still used by links - kept, but never shown as tabs. */}
+      {/* Older screens still used by links - kept, but never shown as tabs. saved */}
       <Tabs.Screen
         name="admin-reports"
         options={{ href: null }}

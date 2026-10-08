@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { C } from "../../constants/palette";
 import { apiRequest, getStorageUrl } from "../../services/api";
+import PhotoViewer from "../../components/PhotoViewer";
 
 type Status =
   | "pending"
@@ -88,6 +89,10 @@ export default function AdminReportDetails() {
     useState("");
 
   const [error, setError] = useState("");
+
+  // index of the photo opened in the full-screen viewer (null = closed)
+  const [viewerIndex, setViewerIndex] =
+    useState<number | null>(null);
 
   const loadReport = useCallback(async () => {
     if (!id) {
@@ -440,15 +445,24 @@ export default function AdminReportDetails() {
                 styles.photoContent
               }
             >
-              {report.photos.map((photo) => (
-                <Image
+              {report.photos.map((photo, photoIndex) => (
+                <Pressable
                   key={photo.id}
-                  source={{
-                    uri: getStorageUrl(photo.url),
-                  }}
-                  style={styles.photo}
-                  resizeMode="cover"
-                />
+                  onPress={() => setViewerIndex(photoIndex)}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`Open photo ${photoIndex + 1} full screen`}
+                  style={({ pressed }) =>
+                    pressed && { opacity: 0.8 }
+                  }
+                >
+                  <Image
+                    source={{
+                      uri: getStorageUrl(photo.url),
+                    }}
+                    style={styles.photo}
+                    resizeMode="cover"
+                  />
+                </Pressable>
               ))}
             </ScrollView>
           ) : (
@@ -458,6 +472,13 @@ export default function AdminReportDetails() {
               </Text>
             </View>
           )}
+
+          {report.photos &&
+          report.photos.length > 0 ? (
+            <Text style={styles.photoHint}>
+              Tap a photo to view it full screen
+            </Text>
+          ) : null}
 
           {/* REPORTER */}
 
@@ -668,6 +689,15 @@ export default function AdminReportDetails() {
           ) : null}
         </View>
       </ScrollView>
+
+      {/* Full-screen photo viewer (opens when a photo is tapped) */}
+      <PhotoViewer
+        photos={(report.photos ?? []).map((photo) =>
+          getStorageUrl(photo.url)
+        )}
+        index={viewerIndex}
+        onClose={() => setViewerIndex(null)}
+      />
     </View>
   );
 }
@@ -692,7 +722,7 @@ const styles = StyleSheet.create({
   ========================================================= */
 
   header: {
-    backgroundColor: C.white,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 18,
     paddingTop: 50,
     paddingBottom: 14,
@@ -713,7 +743,7 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    color: C.white,
+    color: "#FFFFFF",
     fontSize: 30,
     lineHeight: 32,
     marginTop: -3,
@@ -741,7 +771,7 @@ const styles = StyleSheet.create({
   ========================================================= */
 
   card: {
-    backgroundColor: C.white,
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 12,
@@ -775,7 +805,7 @@ const styles = StyleSheet.create({
 
   reportTitle: {
     flex: 1,
-    color: C.text,
+    color: C.ink,
     fontSize: 18,
     fontWeight: "800",
     lineHeight: 24,
@@ -818,7 +848,7 @@ const styles = StyleSheet.create({
   },
 
   locationText: {
-    color: C.text,
+    color: C.ink,
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 19,
@@ -846,7 +876,7 @@ const styles = StyleSheet.create({
   },
 
   descriptionText: {
-    color: C.text,
+    color: C.ink,
     fontSize: 13,
     lineHeight: 20,
   },
@@ -856,7 +886,7 @@ const styles = StyleSheet.create({
   ========================================================= */
 
   photoLabel: {
-    color: C.text,
+    color: C.ink,
     fontSize: 13,
     fontWeight: "700",
     marginTop: 16,
@@ -890,6 +920,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
+  photoHint: {
+    color: C.muted,
+    fontSize: 11,
+    marginTop: 6,
+  },
+
   /* =========================================================
      REPORTER
   ========================================================= */
@@ -917,7 +953,7 @@ const styles = StyleSheet.create({
   },
 
   detailValue: {
-    color: C.text,
+    color: C.ink,
     fontSize: 12,
     fontWeight: "600",
     textAlign: "right",
@@ -930,7 +966,7 @@ const styles = StyleSheet.create({
   ========================================================= */
 
   actionTitle: {
-    color: C.text,
+    color: C.ink,
     fontSize: 16,
     fontWeight: "800",
     marginBottom: 5,
@@ -957,7 +993,7 @@ const styles = StyleSheet.create({
   },
 
   primaryButtonText: {
-    color: C.white,
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",
   },
@@ -970,7 +1006,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: C.maroon,
-    backgroundColor: C.white,
+    backgroundColor: "#FFFFFF",
   },
 
   outlineButtonText: {
@@ -1035,7 +1071,7 @@ const styles = StyleSheet.create({
   ========================================================= */
 
   errorCard: {
-    backgroundColor: C.white,
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 12,
@@ -1067,7 +1103,7 @@ const styles = StyleSheet.create({
   },
 
   retryButtonText: {
-    color: C.white,
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",
   },
