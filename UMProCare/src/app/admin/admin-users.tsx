@@ -205,27 +205,42 @@ export default function AdminUsers() {
   }
 
   return (
-    <Page>
-      {/* Header */}
-      <View style={styles.customHeader}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={10}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </Pressable>
+    
+<Page>
+  <View style={styles.header}>
+    <Pressable
+      onPress={() => router.back()}
+      style={styles.backButton}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+    >
+      <Text style={styles.backButtonText}>‹</Text>
+    </Pressable>
 
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>
-            User management
-          </Text>
+    <View style={styles.headerTextContainer}>
+      <Text style={styles.headerTitle}>User management</Text>
+      <Text style={styles.headerSubtitle}>
+        Search users and ban or unban accounts
+      </Text>
+    </View>
 
-          <Text style={styles.headerSubtitle}>
-            Search users and ban or unban accounts
-          </Text>
-        </View>
-      </View>
+    <Pressable
+      onPress={loadUsers}
+      disabled={loading}
+      style={[
+        styles.refreshButton,
+        loading && { opacity: 0.6 },
+      ]}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Refresh user list"
+    >
+      <Text style={styles.refreshButtonText}>
+        {loading ? "Loading..." : "Refresh"}
+      </Text>
+    </Pressable>
+  </View>
 
       {/* Search */}
       <View style={styles.content}>
@@ -580,6 +595,18 @@ const styles = StyleSheet.create({
      HEADER
   ========================= */
 
+header: {
+  backgroundColor: "#FFFFFF",
+  paddingHorizontal: 16,
+  paddingTop: 40,
+  paddingBottom: 16,
+  flexDirection: "row",
+  alignItems: "center",
+  borderBottomWidth: 1,
+  borderBottomColor: C.line,
+  marginBottom: 12,
+},
+
   customHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -590,39 +617,35 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: C.maroon,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
+backButton: {
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  backgroundColor: C.maroon,
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 12,
+},
+backButtonText: {
+  color: "#FFFFFF",
+  fontSize: 30,
+  lineHeight: 32,
+  marginTop: -3,
+},
 
-  backButtonText: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "300",
-    lineHeight: 34,
-    marginTop: -3,
-  },
-
-  headerTextContainer: {
-    flex: 1,
-  },
-
-  headerTitle: {
-    color: C.maroon,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-
-  headerSubtitle: {
-    color: C.muted,
-    fontSize: 12,
-    marginTop: 3,
-  },
+headerTextContainer: {
+  flex: 1,
+},
+headerTitle: {
+  color: C.maroon,
+  fontSize: 18,
+  fontWeight: "800",
+},
+headerSubtitle: {
+  color: C.muted,
+  fontSize: 11,
+  marginTop: 3,
+},
 
   /* =========================
      CONTENT
@@ -630,7 +653,8 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 18,
-    paddingBottom: 30,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
 
   sectionLabel: {
@@ -641,6 +665,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 9,
   },
+
+  
+refreshButton: {
+  backgroundColor: C.maroon,
+  paddingHorizontal: 12,
+  paddingVertical: 9,
+  borderRadius: 8,
+  marginLeft: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+refreshButtonText: {
+  color: "#FFFFFF",
+  fontSize: 12,
+  fontWeight: "700",
+},
+
 
   /* =========================
      SEARCH

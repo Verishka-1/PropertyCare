@@ -188,22 +188,6 @@ export default function AdminDashboardScreen() {
               Review damage reports and monitor the
               condition of school property.
             </Text>
-
-            <Pressable
-              onPress={openAllReports}
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.primaryButtonPressed,
-              ]}
-            >
-              <Text style={styles.primaryButtonText}>
-                View Reports
-              </Text>
-
-              <Text style={styles.primaryButtonArrow}>
-                ›
-              </Text>
-            </Pressable>
           </View>
 
           <View style={styles.welcomeDecoration}>

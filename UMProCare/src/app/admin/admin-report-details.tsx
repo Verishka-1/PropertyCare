@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, } from "expo-router";
 
 import { C } from "../../constants/palette";
 import { apiRequest, getStorageUrl } from "../../services/api";
@@ -49,6 +49,7 @@ const STATUS_INFO: Record<string, { label: string; color: string }> = {
   },
 };
 
+
 type Photo = {
   id: number;
   url: string;
@@ -82,7 +83,29 @@ export default function AdminReportDetails() {
 
   const [report, setReport] =
     useState<ReportDetails | null>(null);
+  
+  const { returnTo } = useLocalSearchParams<{
+  returnTo?: string;
+}>();
 
+const handleBack = () => {
+  if (returnTo === "admin-reports") {
+    router.replace("/admin/admin-reports");
+    return;
+  }
+
+  if (returnTo === "admin-campus-map") {
+    router.replace("/admin/admin-campus-map");
+    return;
+  }
+
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+
+  router.replace("/admin/admin-campus-map");
+};
   const [loading, setLoading] = useState(true);
 
   const [savingStatus, setSavingStatus] =
@@ -205,96 +228,96 @@ export default function AdminReportDetails() {
     );
   };
 
-  /* =========================================================
-     LOADING
-  ========================================================= */
+    /* =========================================================
+      LOADING
+    ========================================================= */
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={8}
-          >
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
+    if (loading) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Pressable
+              onPress={handleBack}
+              style={styles.backButton}
+              hitSlop={8}
+            >
+              <Text style={styles.backText}>‹</Text>
+            </Pressable>
 
-          <View style={styles.headerText}>
-            <Text style={styles.title}>
-              Report Details
-            </Text>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>
+                Report Details
+              </Text>
 
-            <Text style={styles.subtitle}>
-              Loading report...
+              <Text style={styles.subtitle}>
+                Loading report...
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.centerContent}>
+            <ActivityIndicator
+              size="large"
+              color={C.maroon}
+            />
+
+            <Text style={styles.loadingText}>
+              Loading report details...
             </Text>
           </View>
         </View>
+      );
+    }
 
-        <View style={styles.centerContent}>
-          <ActivityIndicator
-            size="large"
-            color={C.maroon}
-          />
+    /* =========================================================
+      ERROR
+    ========================================================= */
 
-          <Text style={styles.loadingText}>
-            Loading report details...
-          </Text>
-        </View>
-      </View>
-    );
-  }
+    if (error || !report) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Pressable
+              onPress={handleBack}
+              style={styles.backButton}
+              hitSlop={8}
+            >
+              <Text style={styles.backText}>‹</Text>
+            </Pressable>
 
-  /* =========================================================
-     ERROR
-  ========================================================= */
+            <View style={styles.headerText}>
+              <Text style={styles.title}>
+                Report Details
+              </Text>
 
-  if (error || !report) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={8}
-          >
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
+              <Text style={styles.subtitle}>
+                Unable to display report
+              </Text>
+            </View>
+          </View>
 
-          <View style={styles.headerText}>
-            <Text style={styles.title}>
-              Report Details
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>
+              Could not load report
             </Text>
 
-            <Text style={styles.subtitle}>
-              Unable to display report
+            <Text style={styles.errorMessage}>
+              {error ||
+                "The requested report was not found."}
             </Text>
+
+            <Pressable
+              onPress={loadReport}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>
+                Try Again
+              </Text>
+            </Pressable>
           </View>
         </View>
-
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>
-            Could not load report
-          </Text>
-
-          <Text style={styles.errorMessage}>
-            {error ||
-              "The requested report was not found."}
-          </Text>
-
-          <Pressable
-            onPress={loadReport}
-            style={styles.retryButton}
-          >
-            <Text style={styles.retryButtonText}>
-              Try Again
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
+      );
+    }
 
   const reportDate = report.created_at
     ? new Date(
@@ -342,7 +365,7 @@ export default function AdminReportDetails() {
 
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={styles.backButton}
             hitSlop={8}
             accessibilityRole="button"

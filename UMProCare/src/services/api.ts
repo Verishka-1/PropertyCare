@@ -266,6 +266,8 @@ export async function submitReport(payload: {
     }),
   });
 }
+export const getMyComplaints = () =>
+  apiRequest("/my/complaints");
 
 export async function getMyReports() {
   const result = await apiRequest("/my/reports");

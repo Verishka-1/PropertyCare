@@ -60,13 +60,13 @@ export default function RegisterScreen() {
     }
 
     // digits, spaces and + ( ) - only, 7 to 20 characters
-    if (!/^[0-9+()\-\s]{7,20}$/.test(cleanContact)) {
-      Alert.alert(
-        "Invalid Contact Number",
-        "Please enter a valid contact number, for example 09123456789."
-      );
-      return;
-    }
+    if (!/^(09\d{9}|\+639\d{9})$/.test(cleanContact.replace(/[\s()-]/g, ""))) {
+  Alert.alert(
+    "Invalid Contact Number",
+    "Please enter a valid Philippine mobile number, for example 09123456789 or +639123456789."
+  );
+  return;
+}
 
     const usernamePattern = /^[a-zA-Z0-9_-]+$/;
     if (!usernamePattern.test(cleanUsername)) {

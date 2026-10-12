@@ -284,19 +284,17 @@ export default function AdminRoomReportsScreen() {
       <View style={styles.header}>
 
         <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backButton,
-            pressed && styles.pressed,
-          ]}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Go back to Building Map"
-        >
-          <Text style={styles.backText}>
-            ‹
-          </Text>
-        </Pressable>
+  onPress={() => router.navigate("/admin/admin-campus-map")}
+  style={({ pressed }) => [
+    styles.backButton,
+    pressed && styles.pressed,
+  ]}
+  hitSlop={8}
+  accessibilityRole="button"
+  accessibilityLabel="Go back to Building Map"
+>
+  <Text style={styles.backText}>‹</Text>
+</Pressable>
 
         <View style={styles.headerText}>
 
@@ -471,16 +469,16 @@ export default function AdminRoomReportsScreen() {
           reports.map((report) => (
 
             <Pressable
-              key={report.id}
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/admin/admin-report-details",
-                  params: {
-                    id: String(report.id),
-                  },
-                } as any)
-              }
+                key={report.id}
+                onPress={() =>
+                  router.push({
+                    pathname: "/admin/admin-report-details",
+                    params: {
+                      id: String(report.id),
+                      returnTo: "/admin/room-reports",
+                    },
+                  } as any)
+                }
               style={({ pressed }) => [
                 styles.reportCard,
                 pressed && styles.reportCardPressed,
@@ -738,7 +736,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.lightGray,
   },
 
   /* =======================================================

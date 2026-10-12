@@ -10,7 +10,7 @@ export default function UserTabsLayout() {
         tabBarActiveTintColor: "#7A1838",
         tabBarInactiveTintColor: "#858585",
         tabBarStyle: {
-          height: 64,
+          height: 70,
           paddingTop: 6,
           paddingBottom: 8,
           backgroundColor: "#FFFFFF",

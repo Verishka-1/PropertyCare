@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Alert,
   ActivityIndicator,
+  Image,
   Text,
   View,
 } from "react-native";
@@ -81,30 +82,32 @@ export default function Login() {
       <View
         style={{
           alignItems: "center",
-          paddingTop: 30,
+          paddingTop: 100,
           gap: 7,
         }}
       >
-        <View
-          style={{
-            backgroundColor: C.maroon,
-            borderRadius: 16,
-            width: 58,
-            height: 58,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: "#fff",
-              fontSize: 23,
-              fontWeight: "900",
-            }}
-          >
-            UM
-          </Text>
-        </View>
+        
+<View
+  style={{
+    backgroundColor: C.maroon,
+    borderRadius: 16,
+    width: 58,
+    height: 58,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  }}
+>
+  <Image
+    source={require("../../assets/images/UMProCareLogo.png")}
+    style={{
+      width: 46,
+      height: 46,
+    }}
+    resizeMode="contain"
+  />
+</View>
+
 
         <Text
           style={{

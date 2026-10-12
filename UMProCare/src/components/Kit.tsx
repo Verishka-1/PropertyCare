@@ -5,7 +5,38 @@ import {C} from "../constants/palette";
 export function Page({children}:{children:React.ReactNode}){return <ScrollView style={s.page} contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">{children}</ScrollView>}
 export function Header({title,sub,back=false}:{title:string;sub?:string;back?:boolean}){return <View style={s.header}>{back&&<Pressable onPress={()=>router.back()}><Text style={s.back}>‹</Text></Pressable>}<View style={{flex:1}}><Text style={s.title}>{title}</Text>{!!sub&&<Text style={s.sub}>{sub}</Text>}</View></View>}
 export function Card({children,style}:any){return <View style={[s.card,style]}>{children}</View>}
-export function Button({title,onPress,outline=false}:{title:string;onPress:()=>void;outline?:boolean}){return <Pressable onPress={onPress} style={[s.btn,outline&&s.outline]}><Text style={[s.btnText,outline&&{color:C.maroon}]}>{title}</Text></Pressable>}
+export function Button({
+  title,
+  onPress,
+  outline = false,
+  disabled = false,
+}: {
+  title: string;
+  onPress: () => void;
+  outline?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        s.btn,
+        outline && s.outline,
+        disabled && { opacity: 0.5 },
+      ]}
+    >
+      <Text
+        style={[
+          s.btnText,
+          outline && { color: C.maroon },
+        ]}
+      >
+        {title}
+      </Text>
+    </Pressable>
+  );
+}
 export function Field({label,...p}:TextInputProps&{label:string}){return <View style={{gap:6}}><Text style={s.label}>{label}</Text><TextInput placeholderTextColor="#A49A9F" style={[s.input,p.multiline&&{height:112,paddingTop:12}]} {...p}/></View>}
 export function Heading({children}:{children:string}){return <Text style={s.heading}>{children}</Text>}
 export function Pill({children,color=C.maroon}:{children:string;color?:string}){return <View style={{backgroundColor:color+"18",paddingVertical:5,paddingHorizontal:9,borderRadius:6}}><Text style={{fontSize:10,fontWeight:"800",color}}>{children.toUpperCase()}</Text></View>}

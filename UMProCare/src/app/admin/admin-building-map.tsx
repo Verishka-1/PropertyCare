@@ -1467,7 +1467,7 @@ const styles =
       borderRadius: 8,
 
       backgroundColor:
-        COLORS.lighterMaroon,
+        COLORS.maroon,
 
       marginLeft: 8,
     },
@@ -1478,7 +1478,7 @@ const styles =
 
     refreshText: {
       color:
-        COLORS.maroon,
+        COLORS.white,
 
       fontSize: 12,
 

@@ -50,6 +50,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // Complaints / feedback to the admin.
     Route::post('/complaints', [ComplaintController::class, 'store']);
+ 
+    // View the logged-in user's own complaints and admin replies.
+    Route::get('/my/complaints', [ComplaintController::class, 'myComplaints']);
 
     // In-app notifications (bell icon) - users AND admin.
     Route::get('/notifications', [NotificationController::class, 'index']);

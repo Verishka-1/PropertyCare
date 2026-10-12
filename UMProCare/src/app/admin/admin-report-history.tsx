@@ -400,28 +400,17 @@ export default function AdminReportHistoryScreen() {
 
       return (
         <Pressable
-          key={String(report.id)}
-          style={
-            styles.reportCard
-          }
-          onPress={() => {
-            /*
-             * Open the same admin report
-             * details screen.
-             *
-             * If your project uses a different
-             * details route, change this path.
-             */
-
-            router.push({
-              pathname:
-                "/admin/admin-report-details",
-              params: {
-                id:
-                  String(report.id),
-              },
-            } as any);
-          }}
+              key={String(report.id)}
+              style={styles.reportCard}
+              onPress={() => {
+                router.push({
+                  pathname: "/admin/admin-report-details",
+                  params: {
+                    id: String(report.id),
+                    returnTo: "/admin/admin-report-history",
+                  },
+                } as any);
+              }}
         >
           {/* TOP ROW */}
 

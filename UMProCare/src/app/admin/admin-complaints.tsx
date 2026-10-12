@@ -1,9 +1,22 @@
+
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { router } from "expo-router";
 
 import { C } from "../../constants/palette";
-import { Page, Header, Card, Button, Pill } from "../../components/Kit";
-import { getAdminComplaints, replyToComplaint } from "../../services/api";
+import { Page, Card, Button, Pill } from "../../components/Kit";
+import {
+  getAdminComplaints,
+  replyToComplaint,
+} from "../../services/api";
 
 type Complaint = {
   id: number;
@@ -25,20 +38,16 @@ function formatDate(value?: string | null) {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString();
+  return Number.isNaN(date.getTime())
+    ? ""
+    : date.toLocaleDateString();
 }
 
-/**
- * Complaints & feedback.
- * The admin writes a reply here; it is saved and shows up in the sender's
- * notification bell inside the app (no email app needed).
- */
 export default function AdminComplaints() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // which complaint has its reply box open, and what is typed in it
   const [replyingId, setReplyingId] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -48,10 +57,14 @@ export default function AdminComplaints() {
       setLoading(true);
       setError("");
 
-      setComplaints((await getAdminComplaints()) as Complaint[]);
+      setComplaints(
+        (await getAdminComplaints()) as Complaint[]
+      );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not load complaints."
+        err instanceof Error
+          ? err.message
+          : "Could not load complaints."
       );
     } finally {
       setLoading(false);
@@ -76,18 +89,26 @@ export default function AdminComplaints() {
     const text = replyText.trim();
 
     if (!text) {
-      Alert.alert("Reply is empty", "Please write your reply first.");
+      Alert.alert(
+        "Reply is empty",
+        "Please write your reply first."
+      );
       return;
     }
 
     try {
       setSending(true);
 
-      const updated = (await replyToComplaint(complaint.id, text)) as Complaint;
+      const updated = (await replyToComplaint(
+        complaint.id,
+        text
+      )) as Complaint;
 
       setComplaints((current) =>
         current.map((row) =>
-          row.id === complaint.id ? { ...row, ...updated } : row
+          row.id === complaint.id
+            ? { ...row, ...updated }
+            : row
         )
       );
 
@@ -100,7 +121,9 @@ export default function AdminComplaints() {
     } catch (err) {
       Alert.alert(
         "Could not send reply",
-        err instanceof Error ? err.message : "Please try again."
+        err instanceof Error
+          ? err.message
+          : "Please try again."
       );
     } finally {
       setSending(false);
@@ -109,37 +132,87 @@ export default function AdminComplaints() {
 
   return (
     <Page>
-      <Header
-        title="Complaints & feedback"
-        sub="Messages from campus users"
-        back
-      />
+      {/* HEADER — MATCHES ADMIN REPORT HISTORY */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={styles.backText}>‹</Text>
+        </Pressable>
 
-      <View style={{ gap: 12 }}>
-        <Button
-          title={loading ? "Loading..." : "Refresh complaints"}
-          outline
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>
+            Complaints & feedback
+          </Text>
+
+          <Text style={styles.headerSubtitle}>
+            Messages from campus users
+          </Text>
+        </View>
+
+        <Pressable
           onPress={loadComplaints}
-        />
+          style={[
+            styles.refreshButton,
+            loading && styles.refreshButtonDisabled,
+          ]}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh complaints"
+        >
+          <Text style={styles.refreshText}>
+            {loading ? "Loading..." : "Refresh"}
+          </Text>
+        </Pressable>
+      </View>
 
+      {/* ORIGINAL CONTENT — UNCHANGED */}
+      <View style={{ gap: 12 }}>
         {loading ? (
           <Card>
             <ActivityIndicator color={C.maroon} />
-            <Text style={{ color: C.muted, textAlign: "center" }}>
+
+            <Text
+              style={{
+                color: C.muted,
+                textAlign: "center",
+              }}
+            >
               Loading complaints...
             </Text>
           </Card>
         ) : error ? (
           <Card>
-            <Text style={{ color: "#B00020", fontWeight: "700" }}>
+            <Text
+              style={{
+                color: "#B00020",
+                fontWeight: "700",
+              }}
+            >
               Could not load complaints
             </Text>
-            <Text style={{ color: C.muted }}>{error}</Text>
-            <Button title="Try again" onPress={loadComplaints} />
+
+            <Text style={{ color: C.muted }}>
+              {error}
+            </Text>
+
+            <Button
+              title="Try again"
+              onPress={loadComplaints}
+            />
           </Card>
         ) : complaints.length === 0 ? (
           <Card>
-            <Text style={{ color: C.muted, textAlign: "center" }}>
+            <Text
+              style={{
+                color: C.muted,
+                textAlign: "center",
+              }}
+            >
               No complaints or feedback have been submitted yet.
             </Text>
           </Card>
@@ -166,15 +239,23 @@ export default function AdminComplaints() {
                       flex: 1,
                     }}
                   >
-                    {complaint.subject || "Complaint or feedback"}
+                    {complaint.subject ||
+                      "Complaint or feedback"}
                   </Text>
 
-                  <Pill color={replied ? "#247A50" : "#9A6200"}>
+                  <Pill
+                    color={replied ? "#247A50" : "#9A6200"}
+                  >
                     {replied ? "Replied" : "Open"}
                   </Pill>
                 </View>
 
-                <Text style={{ color: C.muted, fontSize: 12 }}>
+                <Text
+                  style={{
+                    color: C.muted,
+                    fontSize: 12,
+                  }}
+                >
                   {complaint.user?.name ?? "Campus user"}
                   {complaint.user?.contact_number
                     ? ` · ${complaint.user.contact_number}`
@@ -184,8 +265,14 @@ export default function AdminComplaints() {
                     : ""}
                 </Text>
 
-                <Text style={{ color: C.ink, lineHeight: 20 }}>
-                  {complaint.message || "No message provided."}
+                <Text
+                  style={{
+                    color: C.ink,
+                    lineHeight: 20,
+                  }}
+                >
+                  {complaint.message ||
+                    "No message provided."}
                 </Text>
 
                 {replied && !isReplying ? (
@@ -210,7 +297,12 @@ export default function AdminComplaints() {
                         : ""}
                     </Text>
 
-                    <Text style={{ color: C.ink, lineHeight: 20 }}>
+                    <Text
+                      style={{
+                        color: C.ink,
+                        lineHeight: 20,
+                      }}
+                    >
                       {complaint.admin_reply}
                     </Text>
                   </View>
@@ -246,13 +338,22 @@ export default function AdminComplaints() {
                           title="Send reply"
                           onPress={() => sendReply(complaint)}
                         />
-                        <Button title="Cancel" outline onPress={closeReply} />
+
+                        <Button
+                          title="Cancel"
+                          outline
+                          onPress={closeReply}
+                        />
                       </>
                     )}
                   </View>
                 ) : (
                   <Button
-                    title={replied ? "Edit reply" : "Reply to user"}
+                    title={
+                      replied
+                        ? "Edit reply"
+                        : "Reply to user"
+                    }
                     outline={replied}
                     onPress={() => openReply(complaint)}
                   />
@@ -265,3 +366,68 @@ export default function AdminComplaints() {
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingTop: 30,
+    paddingBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
+    marginBottom: 12,
+  },
+
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: C.maroon,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  backText: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    lineHeight: 32,
+    marginTop: -3,
+  },
+
+  headerText: {
+    flex: 1,
+  },
+
+  headerTitle: {
+    color: C.maroon,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  headerSubtitle: {
+    color: C.muted,
+    fontSize: 11,
+    marginTop: 3,
+  },
+
+  refreshButton: {
+    backgroundColor: C.maroon,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+
+  refreshButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  refreshText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+});

@@ -87,4 +87,31 @@ class ComplaintController extends Controller
             'data' => $complaint->fresh()->load('user:id,name,email,contact_number'),
         ]);
     }
+
+    
+/**
+ * GET /api/my/complaints
+ * Returns only the signed-in user's complaints and admin replies.
+ */
+public function myComplaints(Request $request)
+{
+    $complaints = Complaint::query()
+        ->where('user_id', $request->user()->id)
+        ->latest()
+        ->get([
+            'id',
+            'user_id',
+            'subject',
+            'message',
+            'status',
+            'admin_reply',
+            'replied_at',
+            'created_at',
+        ]);
+
+    return response()->json([
+        'data' => $complaints,
+    ]);
+}
+
 }

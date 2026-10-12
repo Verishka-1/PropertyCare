@@ -61,12 +61,17 @@ export default function AdminReports() {
     loadReports();
   }, [loadReports]);
 
-  const openReport = (reportId: number) => {
-    router.push({
-      pathname: "/admin/admin-report-details",
-      params: { id: String(reportId) },
-    } as any);
-  };
+
+const openReport = (reportId: number) => {
+  router.push({
+    pathname: "/admin/admin-report-details",
+    params: {
+      id: String(reportId),
+      returnTo: "admin-reports",
+    },
+  } as any);
+};
+
 
   return (
     <Page>
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    color: C.text,
+    color: C.ink,
     fontSize: 22,
     fontWeight: "700",
   },
@@ -277,7 +282,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: C.text,
+    color: C.ink,
     fontSize: 19,
     fontWeight: "700",
   },
@@ -293,7 +298,7 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 10,
     borderRadius: 19,
-    backgroundColor: C.lighterMaroon,
+    backgroundColor: C.soft,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -381,7 +386,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: C.lighterMaroon,
+    backgroundColor: C.soft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -394,7 +399,7 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    color: C.text,
+    color: C.ink,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 5,
@@ -412,17 +417,17 @@ const styles = StyleSheet.create({
   ========================= */
 
   footerCard: {
-    backgroundColor: C.white,
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingHorizontal: 17,
     paddingVertical: 15,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.line,
   },
 
   footerTitle: {
-    color: C.text,
+    color: C.ink,
     fontSize: 14,
     fontWeight: "700",
     marginBottom: 4,
